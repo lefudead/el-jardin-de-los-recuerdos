@@ -1,0 +1,11 @@
+# Dependencias temporales / entorno
+node_modules/
+.chrome-test*/
+*.log
+
+# Archivos de prueba y debug (no forman parte del juego)
+_diag*/
+
+# Saves exportados por el jugador
+saves/*
+!saves/.gitkeep

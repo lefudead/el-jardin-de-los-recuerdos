@@ -1,0 +1,20 @@
+# El Jardín de los Recuerdos — configuración de deploy (Netlify)
+# Sitio 100% estático (módulos ES nativos, sin build). Publish dir = raíz.
+[build]
+  publish = "."
+  command = ""
+
+# Fallback SPA: cualquier ruta que no exista -> index.html
+[build.processing]
+  skip_processing = false
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Cabeceras de caché para los estáticos
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

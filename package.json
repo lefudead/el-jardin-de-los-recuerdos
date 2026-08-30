@@ -1,0 +1,14 @@
+{
+  "name": "el-jardin-de-los-recuerdos",
+  "version": "0.1.0",
+  "description": "El Jardín de los Recuerdos — prototipo web (MVP). GDD técnico v1.0.",
+  "type": "module",
+  "scripts": {
+    "start": "node static.cjs",
+    "serve": "node static.cjs",
+    "test": "node test_v3.cjs && node test_mvp.cjs"
+  },
+  "keywords": ["game", "cozy", "clicker", "garden", "phaser"],
+  "license": "UNLICENSED",
+  "private": true
+}
