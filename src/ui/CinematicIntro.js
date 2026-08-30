@@ -1,17 +1,15 @@
 /**
  * CinematicIntro — intro cinematográfico de narración.
- * Texto en fondo negro que aparece lentamente (palabra a palabra),
- * y al terminar un destello de luz da paso al juego.
+ * Texto en fondo negro que aparece FRASE A FRASE (cada frase completa,
+ * con pausa y fundido entre ellas), y al terminar un destello da paso al juego.
  */
-
-const Q = (id) => document.getElementById(id);
 
 // Texto narrativo del inicio (usa el lore del GDD).
 const LINES = [
   "Habían pasado seis años desde la última vez que estuve aquí.",
   "Todos decían que debía vender esta casa. Que no quedaba nada para mí.",
   "Tal vez tenían razón.",
-  "Pero el y yo vivimos aquí. Antes de que desapareciera.",
+  "Pero él y yo vivimos aquí. Antes de que desapareciera.",
   "Antes de que todos decidieran que estaba muerto.",
   "Y sin embargo regresé.",
   "Porque volver aquí podría darme la oportunidad de... encontrarlo.",
@@ -19,10 +17,11 @@ const LINES = [
   "El Jardín de los Recuerdos"
 ];
 
-// Duración base por palabra (ms) y pausa entre líneas.
-const WORD_MS = 230;
-const LINE_GAP_MS = 700;
-const LAST_HOLD_MS = 1400;
+// Tiempos (ms): muestra de frase, pausa entre frases, y respiro final antes del destello.
+const SHOW_MS = 1800;
+const GAP_MS = 900;
+const LAST_HOLD_MS = 1600;
+const START_DELAY_MS = 600;
 
 export function playCinematicIntro(onComplete) {
   // Si ya existe un intro en curso, no duplicar.
@@ -43,8 +42,8 @@ export function playCinematicIntro(onComplete) {
 
   document.body.appendChild(overlay);
 
-  let skip = false;
   let finished = false;
+  let timer = null;
 
   const finish = () => {
     if (finished) return;
@@ -62,67 +61,56 @@ export function playCinematicIntro(onComplete) {
     }, 450);
   };
 
-  const endWord = () => {
-    // Mostrar la última palabra / el título y dejar respiro antes del destello.
+  const endNarration = () => {
+    // Concertir todas las frases visibles y dar respiro antes del destello.
     setTimeout(finish, LAST_HOLD_MS);
   };
 
-  // Muestra una línea palabra por palabra (efecto narración).
+  // Muestra una frase COMPLETA con fundido; espera; pasa a la siguiente.
   const playLine = (idx) => {
-    if (skip) {
-      // Saltar: mostrar todo el texto y finalizar.
-      textEl.innerHTML = "";
-      LINES.forEach((l, i) => {
-        const p = document.createElement("p");
-        if (!l) p.className = "cinematic-spacer";
-        p.innerHTML = l;
-        p.style.opacity = "1";
-        textEl.appendChild(p);
-      });
-      endWord();
-      return;
-    }
     if (idx >= LINES.length) {
-      endWord();
+      endNarration();
       return;
     }
 
     const raw = LINES[idx];
     const p = document.createElement("p");
     if (idx === LINES.length - 1) p.className = "cinematic-title";
-    if (!raw) {
-      p.className = "cinematic-spacer";
-    }
+    if (!raw) p.className = "cinematic-spacer";
+    p.textContent = raw;
+    p.style.opacity = "0";
     textEl.appendChild(p);
-    p.style.opacity = "1";
 
-    const words = raw.split(" ");
-    let wi = 0;
-    const step = () => {
-      if (skip) return;
-      if (wi >= words.length) {
-        timer = setTimeout(() => playLine(idx + 1), LINE_GAP_MS);
-        return;
-      }
-      // Añadir la palabra con un espacio.
-      const w = document.createElement("span");
-      w.className = "cinematic-word";
-      w.textContent = words[wi] + " ";
-      p.appendChild(w);
-      wi++;
-      timer = setTimeout(step, WORD_MS);
-    };
-    step();
+    // Fundido de entrada de la frase (completa).
+    requestAnimationFrame(() => { p.style.transition = "opacity 0.8s ease"; p.style.opacity = "1"; });
+
+    // Después del tiempo de lectura, fundir a negro y pasar a la siguiente.
+    timer = setTimeout(() => {
+      p.style.opacity = "0";
+      // Mantener el párrafo (para dar continuidad) pero pausar.
+      timer = setTimeout(() => playLine(idx + 1), GAP_MS);
+    }, SHOW_MS);
   };
 
-  let timer = setTimeout(() => playLine(0), 600);
-
-  // Tocar para omitir (acelera / termina).
-  const onClick = () => {
+  // Al omitir, mostrar todas las frases de golpe y terminar.
+  const skipAndFinish = () => {
     if (finished) return;
-    skip = true;
-    playLine(0);
+    clearTimeout(timer);
+    textEl.innerHTML = "";
+    LINES.forEach((l, i) => {
+      const p = document.createElement("p");
+      if (!l) p.className = "cinematic-spacer";
+      if (i === LINES.length - 1) p.className = "cinematic-title";
+      p.textContent = l;
+      p.style.opacity = "1";
+      textEl.appendChild(p);
+    });
+    endNarration();
   };
+
+  timer = setTimeout(() => playLine(0), START_DELAY_MS);
+
+  const onClick = () => skipAndFinish();
   overlay.addEventListener("click", onClick);
   overlay.addEventListener("touchend", (e) => { e.preventDefault(); onClick(); }, { passive: false });
 }
