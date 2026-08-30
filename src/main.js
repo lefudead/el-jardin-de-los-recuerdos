@@ -101,8 +101,8 @@ async function start() {  await preload();
       });
     },
     onReset() {
+      audio.stopMusic();
       showScreen("menu");
-      gardenScene.refresh();
     }
   });
 
