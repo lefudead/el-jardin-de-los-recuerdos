@@ -61,14 +61,9 @@ export class NarrativeSystem {
     return false;
   }
 
-  /** Reproduce un nodo y su cadena next. oneShot evita repetir. */
-  playNode(id) {
-    const startNode = storyById(id);
-    if (!startNode) return false;
-    if (startNode.oneShot && this.isDone(id)) return false;
-
-    // Construir la cadena a partir de `next`
-    let node = startNode;
+  /** Recorre una cadena `next`: aplica efectos, memoria y progreso, y marca cada nodo como hecho. */
+  _applyChain(id) {
+    let node = storyById(id);
     const lines = [];
     let timerCursor = null;
     while (node) {
@@ -79,22 +74,25 @@ export class NarrativeSystem {
       });
       if (node.tutorial) timerCursor = node.tutorial;
       const nextId = node.next;
-      // aplicar efectos del nodo
       if (node.effect) this._applyEffect(node.effect);
       if (node.memory) rewardSystem.give({ type: "memory", id: node.memory });
       if (typeof node.progress === "number") {
         rewardSystem.give({ type: "story", amount: node.progress });
       }
-      // marcar como hecho (uno por cada nodo de la cadena)
       this.markDone(node.id);
-      const singleDone = node;
       node = nextId ? storyById(nextId) : null;
-      if (node) {
-        if (node.oneShot && this.isDone(node.id)) node = null;
-      }
-      void singleDone;
+      if (node && node.oneShot && this.isDone(node.id)) node = null;
     }
+    return { lines, timerCursor };
+  }
 
+  /** Reproduce un nodo y su cadena next. oneShot evita repetir. */
+  playNode(id) {
+    const startNode = storyById(id);
+    if (!startNode) return false;
+    if (startNode.oneShot && this.isDone(id)) return false;
+
+    const { lines, timerCursor } = this._applyChain(id);
     dialogBox.show(lines, {
       onDone: () => {
         if (timerCursor) eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: this._tutorialText(timerCursor) });
@@ -143,11 +141,20 @@ export class NarrativeSystem {
     return "intro";
   }
 
-  /** Reproduce la introducción si es una partida nueva. */
+  /** Registra la introducción de forma silenciosa y muestra el tutorial de tap. */
   tryIntro() {
     if (gameState.state.storyFlags.intro_started) return false;
     gameState.state.storyFlags.intro_started = true;
-    this.playNode("intro_house");
+
+    // La historia ya se contó en el cinemático (§50). Aquí solo registramos
+    // la progresión sin repetir el texto: marcamos los nodos de la intro
+    // como hechos y emitimos el tutorial de tap (§51).
+    this._applyChain("intro_house");
+    this._postProgress();
+
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+      text: this._tutorialText("tap")
+    });
     return true;
   }
 

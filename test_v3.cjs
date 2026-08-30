@@ -61,11 +61,17 @@ async function main() {
   await E(ws, `(() => { const el = document.getElementById('cinematic-intro'); if (el) { el.click(); return true; } return false; })()`);
   await waitFor(ws, `document.getElementById('screen-garden').classList.contains('active')`, 15000);
   check("jardín activo", await E(ws, `document.getElementById('screen-garden').classList.contains('active')`) === true);
-  const introShown = await E(ws, `document.querySelector('.dialog-box')?.offsetParent !== null && document.getElementById('screen-garden').classList.contains('active')`);
-  check("intro narrativa se muestra", introShown === true);
 
-  // Avanzar diálogos de la intro
-  await advanceDialogs(ws);
+  // El cinemático ya contó la historia: NO debe aparecer la intro como diálogo de texto.
+  await sl(400);
+  const introDialogGone = await E(ws, `!document.querySelector('.dialog-box') || document.querySelector('.dialog-box')?.offsetParent === null`);
+  check("sin intro narrativa en la caja de diálogo", introDialogGone === true);
+
+  // En su lugar, se muestra el tutorial de tap (toast).
+  const toastShown = await waitFor(ws, `document.getElementById('toast')?.classList.contains('show')`, 3000, 150);
+  check("tutorial de tap se muestra (toast)", toastShown === true);
+
+  // La intro queda registrada (progreso de historia avanzado).
   check("intro quedó registrada (storyProgress >= 10)", await E(ws, `window.__garden.state.progression.storyProgress >= 10`) === true);
 
   // Tocar flores hasta 15 taps (anomalía a 5, encuentro narrativo a 15)
