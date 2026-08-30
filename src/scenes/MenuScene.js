@@ -13,7 +13,7 @@ export function initMenu({ onEnter, onReset }) {
 
   btnContinue.addEventListener("click", () => {
     audio.unlock();
-    audio.playAmbient();
+    audio.playIntroMusic();
     onEnter?.();
   });
 

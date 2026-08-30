@@ -102,8 +102,8 @@ class AudioSystem {
     this.tone(200, 0.3, 0.1, 0, "triangle");
   }
 
-  /** Música ambiente: arpegio suave repetido. */
-  playAmbient() {
+  /** Música de la INTRO (historia al empezar): melodía suave, una sola nota a la vez. */
+  playIntroMusic() {
     if (!this.ctx) return;
     this.stopMusic();
     const notes = [261.6, 329.6, 392.0, 523.2];
@@ -128,6 +128,11 @@ class AudioSystem {
     this.currentMelody = setInterval(playNote, 2200);
   }
 
+  /** Alias de compatibilidad. */
+  playAmbient() {
+    this.playIntroMusic();
+  }
+
   /** Música para una zona: usa su pista MP3 si existe, si no el arpegio. */
   playZoneMusic(zoneId) {
     const track = ZONE_TRACKS[zoneId] || null;
@@ -136,9 +141,9 @@ class AudioSystem {
       this.playTrack(track);
     } else if (this.currentTrack) {
       this.currentTrack = null;
-      this.playAmbient();
+      this.playIntroMusic();
     } else if (!this.currentMelody && this.ctx) {
-      this.playAmbient();
+      this.playIntroMusic();
     }
   }
 

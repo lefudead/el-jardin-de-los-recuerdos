@@ -21,6 +21,7 @@ import { captureSystem } from "./systems/CaptureSystem.js";
 import { tamingSystem } from "./systems/TamingSystem.js";
 import { rewardSystem } from "./systems/RewardSystem.js";
 import { economy } from "./systems/EconomyInstance.js";
+import { audio } from "./systems/AudioSystem.js";
 import { cageForCreature } from "./data/cages.js";
 import { foodForCreature } from "./data/foods.js";
 import { CONFIG } from "./config.js";
@@ -94,6 +95,7 @@ async function start() {  await preload();
   initMenu({
     onEnter() {
       playCinematicIntro(() => {
+        audio.stopMusic();
         showScreen("garden");
         gardenScene.refresh();
       });
