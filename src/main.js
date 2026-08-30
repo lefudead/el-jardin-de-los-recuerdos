@@ -11,6 +11,7 @@ import { openJournal } from "./scenes/JournalScene.js";
 import { shopScene } from "./scenes/ShopScene.js";
 import { settingsScene } from "./scenes/SettingsScene.js";
 import { saveManager } from "./systems/SaveInstance.js";
+import { playCinematicIntro } from "./ui/CinematicIntro.js";
 import { gameState } from "./systems/GameState.js";
 import { dayNight } from "./systems/DayNightSystem.js";
 import { eventBus } from "./systems/EventBus.js";
@@ -92,8 +93,10 @@ async function start() {  await preload();
   // Menú
   initMenu({
     onEnter() {
-      showScreen("garden");
-      gardenScene.refresh();
+      playCinematicIntro(() => {
+        showScreen("garden");
+        gardenScene.refresh();
+      });
     },
     onReset() {
       showScreen("menu");

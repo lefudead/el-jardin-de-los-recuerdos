@@ -572,3 +572,67 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
   animation: niloAlert 0.6s infinite alternate;
 }
 @keyframes niloAlert { from { opacity: 0.7; } to { opacity: 1; } }
+
+/* ===== Intro cinematográfico ===== */
+.cinematic-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.cinematic-text {
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  color: #f5f1e6;
+  font-size: 20px;
+  line-height: 1.6;
+  text-shadow: 0 0 12px rgba(255, 255, 200, 0.15);
+}
+.cinematic-text p {
+  margin: 6px 0;
+  min-height: 1.6em;
+}
+.cinematic-text .cinematic-word {
+  opacity: 0;
+  animation: wordFade 0.4s ease forwards;
+}
+@keyframes wordFade {
+  from { opacity: 0; filter: blur(2px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+.cinematic-text .cinematic-title {
+  font-size: 30px;
+  color: #ffe9a8;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-top: 18px;
+  text-shadow: 0 0 20px rgba(255, 220, 140, 0.5);
+}
+.cinematic-text .cinematic-spacer { min-height: 1.6em; }
+.cinematic-hint {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255,255,255,0.4);
+  font-size: 12px;
+}
+/* Destello final de luz que da paso al juego */
+.cinematic-intro.cinematic-flash {
+  background: linear-gradient(180deg, #000, #3a2f0a 55%, #ffe9a8 100%);
+}
+.cinematic-intro.cinematic-flash .cinematic-text {
+  animation: breatheGlow 1s ease forwards;
+}
+@keyframes breatheGlow {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.12); text-shadow: 0 0 40px rgba(255, 240, 180, 0.9); }
+}

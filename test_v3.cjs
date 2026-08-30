@@ -56,8 +56,10 @@ async function main() {
   check("la app cargó (API de depuración)", ready === true);
   await sl(300);
 
-  // Entrar al jardín -> intro narrativa
+  // Entrar al jardín -> intro cinematográfico (lo omitimos al instante)
   await E(ws, `document.getElementById('btn-continue').click()`); await sl(400);
+  await E(ws, `(() => { const el = document.getElementById('cinematic-intro'); if (el) { el.click(); return true; } return false; })()`);
+  await waitFor(ws, `document.getElementById('screen-garden').classList.contains('active')`, 15000);
   check("jardín activo", await E(ws, `document.getElementById('screen-garden').classList.contains('active')`) === true);
   const introShown = await E(ws, `document.querySelector('.dialog-box')?.offsetParent !== null && document.getElementById('screen-garden').classList.contains('active')`);
   check("intro narrativa se muestra", introShown === true);

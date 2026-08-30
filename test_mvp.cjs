@@ -50,8 +50,10 @@ async function main() {
 
   check("menú activo al cargar", await E(ws, `document.getElementById('screen-menu').classList.contains('active')`) === true);
 
-  // Entrar al jardín
+  // Entrar al jardín (se muestra el intro cinematográfico; lo omitimos al instante)
   await E(ws, `document.getElementById('btn-continue').click()`); await sl(400);
+  await E(ws, `(() => { const el = document.getElementById('cinematic-intro'); if (el) { el.click(); return true; } return false; })()`);
+  await waitFor(ws, `document.getElementById('screen-garden').classList.contains('active')`, 15000);
   check("jardín activo", await E(ws, `document.getElementById('screen-garden').classList.contains('active')`) === true);
   const n = await E(ws, `document.querySelectorAll('#garden-area .flower').length`);
   check("se generaron flores (>=3)", n >= 3, "n=" + n);
