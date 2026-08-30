@@ -1,10 +1,10 @@
 /**
- * CinematicIntro — intro cinematográfico de narración.
- * Texto en fondo negro que aparece FRASE A FRASE (cada frase completa,
- * con pausa y fundido entre ellas), y al terminar un destello da paso al juego.
+ * CinematicIntro — narración tipo MÁQUINA DE ESCRIBIR.
+ * Cada frase se escribe letra a letra, se espera, se borra (retroceso),
+ * y pasa a la siguiente. Solo hay una frase en pantalla a la vez.
+ * Al final, un destello da paso al juego.
  */
 
-// Texto narrativo del inicio (usa el lore del GDD).
 const LINES = [
   "Habían pasado seis años desde la última vez que estuve aquí.",
   "Todos decían que debía vender esta casa. Que no quedaba nada para mí.",
@@ -17,14 +17,14 @@ const LINES = [
   "El Jardín de los Recuerdos"
 ];
 
-// Tiempos (ms): muestra de frase, pausa entre frases, y respiro final antes del destello.
-const SHOW_MS = 1800;
-const GAP_MS = 900;
-const LAST_HOLD_MS = 1600;
-const START_DELAY_MS = 600;
+// Tiempos (ms).
+const TYPE_MS = 42;          // velocidad de escritura (letra a letra)
+const BACKSPACE_MS = 22;     // velocidad de borrado
+const HOLD_MS = 1300;        // pausa con la frase completa antes de borrar
+const CLEAR_GAP_MS = 500;    // pausa de pantalla en negro entre frases
+const LAST_HOLD_MS = 1700;   // respiro final con el título antes del destello
 
 export function playCinematicIntro(onComplete) {
-  // Si ya existe un intro en curso, no duplicar.
   if (document.getElementById("cinematic-intro")) return;
 
   const overlay = document.createElement("div");
@@ -34,6 +34,11 @@ export function playCinematicIntro(onComplete) {
   const textEl = document.createElement("div");
   textEl.className = "cinematic-text";
   overlay.appendChild(textEl);
+
+  const cursor = document.createElement("span");
+  cursor.className = "cinematic-cursor";
+  cursor.textContent = "|";
+  textEl.appendChild(cursor);
 
   const hintEl = document.createElement("div");
   hintEl.className = "cinematic-hint";
@@ -49,7 +54,7 @@ export function playCinematicIntro(onComplete) {
     if (finished) return;
     finished = true;
     clearTimeout(timer);
-    // Destello de luz -> transición al juego.
+    cursor.style.display = "none";
     overlay.style.transition = "opacity 1s ease, background 1s ease";
     overlay.classList.add("cinematic-flash");
     setTimeout(() => {
@@ -61,65 +66,71 @@ export function playCinematicIntro(onComplete) {
     }, 450);
   };
 
-  const endNarration = () => {
-    // Dar respiro (con la última frase en pantalla) antes del destello.
-    setTimeout(finish, LAST_HOLD_MS);
-  };
-
-  // Muestra una frase COMPLETA; espera; se BORRA; pasa a la siguiente.
-  const showLine = (idx, keep = false) => {
-    textEl.innerHTML = "";
-    if (idx >= LINES.length) {
-      endNarration();
-      return;
-    }
+  // Escribe la frase letra a letra con cursor parpadeante.
+  const typeLine = (idx) => {
+    if (idx >= LINES.length) { setTimeout(finish, LAST_HOLD_MS); return; }
 
     const raw = LINES[idx];
     const p = document.createElement("p");
-    if (idx === LINES.length - 1) p.className = "cinematic-title";
-    if (!raw) p.className = "cinematic-spacer";
-    p.textContent = raw;
-    p.style.opacity = "0";
+    p.className = idx === LINES.length - 1 ? "cinematic-title" : (!raw ? "cinematic-spacer" : "");
+    const textNode = document.createTextNode("");
+    p.appendChild(textNode);
+    // Quitar solo los párrafos anteriores (preservando el cursor parpadeante).
+    textEl.querySelectorAll("p").forEach((el) => el.remove());
     textEl.appendChild(p);
+    cursor.style.display = "inline";
 
-    // Fundido de entrada de la frase (completa).
-    requestAnimationFrame(() => { p.style.transition = "opacity 0.8s ease"; p.style.opacity = "1"; });
-
-    if (keep) {
-      // Última frase: dejar respiro antes del destello.
-      endNarration();
-      return;
-    }
-
-    // Tiempo de lectura, luego fundir a negro, pausar y pasar a la siguiente.
-    timer = setTimeout(() => {
-      p.style.transition = "opacity 0.5s ease";
-      p.style.opacity = "0";
-      timer = setTimeout(() => playLine(idx + 1), GAP_MS);
-    }, SHOW_MS);
+    let i = 0;
+    const tick = () => {
+      if (finished) { cursor.style.display = "none"; return; }
+      if (i < raw.length) {
+        textNode.data = raw.slice(0, ++i);
+        timer = setTimeout(tick, TYPE_MS);
+        return;
+      }
+      // Frase completa: esperar; la última se mantiene como título.
+      if (idx === LINES.length - 1) {
+        setTimeout(finish, LAST_HOLD_MS);
+        return;
+      }
+      timer = setTimeout(() => eraseLine(p, textNode, idx + 1), HOLD_MS);
+    };
+    tick();
   };
 
-  const playLine = (idx) => {
-    showLine(idx, idx >= LINES.length - 1);
+  // Borra la frase letra a letra (retroceso) y pasa a la siguiente.
+  const eraseLine = (p, textNode, nextIdx) => {
+    const raw = textNode.data;
+    let n = raw.length;
+    const tick = () => {
+      if (finished) { cursor.style.display = "none"; return; }
+      if (n > 0) {
+        textNode.data = raw.slice(0, --n);
+        timer = setTimeout(tick, BACKSPACE_MS);
+        return;
+      }
+      // Frase borrada: pantalla en negro un instante, luego la siguiente.
+      cursor.style.display = "none";
+      timer = setTimeout(() => typeLine(nextIdx), CLEAR_GAP_MS);
+    };
+    tick();
   };
 
-  // Al omitir, mostrar todas las frases de golpe y terminar.
+  // Omitir: mostrar la frase final (título) y terminar rápido.
   const skipAndFinish = () => {
     if (finished) return;
     clearTimeout(timer);
+    cursor.style.display = "none";
     textEl.innerHTML = "";
-    LINES.forEach((l, i) => {
-      const p = document.createElement("p");
-      if (!l) p.className = "cinematic-spacer";
-      if (i === LINES.length - 1) p.className = "cinematic-title";
-      p.textContent = l;
-      p.style.opacity = "1";
-      textEl.appendChild(p);
-    });
-    endNarration();
+    const p = document.createElement("p");
+    p.className = "cinematic-title";
+    p.textContent = LINES[LINES.length - 1];
+    p.style.opacity = "1";
+    textEl.appendChild(p);
+    setTimeout(finish, 400);
   };
 
-  timer = setTimeout(() => playLine(0), START_DELAY_MS);
+  timer = setTimeout(() => typeLine(0), 600);
 
   const onClick = () => skipAndFinish();
   overlay.addEventListener("click", onClick);
