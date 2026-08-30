@@ -550,13 +550,21 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
   position: absolute;
   transform: translate(-50%, -50%);
   font-size: 46px;
+  will-change: left, top, transform;
   z-index: 15;
   cursor: pointer;
-  animation: niloBob 0.7s infinite alternate ease-in-out;
   filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
 }
-.nilo.hit { transform: translate(-50%, -50%) scale(1.2); filter: brightness(1.4); }
-@keyframes niloBob { from { margin-top: 0; } to { margin-top: -10px; } }
+.nilo.nilo-running,
+.nilo.nilo-fleeing {
+  animation: none;
+}
+.nilo.nilo-sneaking {
+  animation: niloBob 0.4s infinite alternate ease-in-out;
+}
+.nilo.flip { transform: translate(-50%, -50%) scaleX(-1); }
+.nilo.hit { transform: translate(-50%, -50%) scale(1.25) !important; filter: brightness(1.5); }
+@keyframes niloBob { from { margin-top: 0; } to { margin-top: -8px; } }
 .nilo-label {
   position: absolute;
   left: 50%;

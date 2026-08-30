@@ -41,7 +41,7 @@ export const CREATURES = {
     companionSkill: {
       id: "flower_collector"
     },
-    emoji: "🐿️",
+    emoji: "🐆",
     notes: "Nilo es curioso, juguetón y un poco codicioso. Roba flores, pero no es malvado: solo quiere cosas.",
     bio: "En vida, Nilo guardaba cada pétalo que le regalaban. Ahora no puede evitarlo: si lo ve, lo toma."
   },

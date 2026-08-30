@@ -67,7 +67,7 @@ eventBus.on(eventBus.constructor.EVENTS.NILO_WARNING, (p) => {
 
 eventBus.on(eventBus.constructor.EVENTS.CREATURE_INTERFERENCE, (p) => {
   if (p.status === "escaped") {
-    notification.show(`🐿️ Nilo robó ${p.stolen} pétalos y escapó.`, 2200);
+    notification.show(`🐆 Nilo robó ${p.stolen} pétalos y escapó.`, 2200);
   }
 });
 

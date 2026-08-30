@@ -269,16 +269,15 @@ export class GardenScene {
     }
   }
 
-  /** Muestra a Nilo robando en el jardín. */
+  /** Muestra a Nilo (un leopardo) que entra corriendo, salta a las plantas
+   *  y, al final, escapa llevándoselas fuera del campo de visión. */
   _renderNilo() {
     if (!this.container) return;
     if (this.niloEl) return;
     const nilo = CREATURES.nilo;
     const el = document.createElement("div");
-    el.className = "nilo";
+    el.className = "nilo nilo-running";
     el.textContent = nilo.emoji;
-    el.style.left = randomBetween(25, 75) + "%";
-    el.style.top = randomBetween(22, 55) + "%";
 
     const label = document.createElement("div");
     label.className = "nilo-label";
@@ -290,16 +289,85 @@ export class GardenScene {
       this._onNiloTap();
     });
 
+    // Aparece desde el borde izquierdo (fuera del campo de visión) y entra corriendo.
+    const top = randomBetween(32, 58);
+    el.style.left = "-20%";
+    el.style.top = top + "%";
+    el.style.transition = "none";
+    el.classList.add("flip");
     this.container.appendChild(el);
     this.niloEl = el;
 
-    // ventana de tiempo para detenerlo
+    // Corre rápidamente hacia las plantas.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!this.niloEl) return;
+      const target = this._pickPlantTarget();
+      el.classList.remove("nilo-running");
+      el.classList.add("nilo-sneaking");
+      this._niloHop(el, target.x, target.y, true, 550);
+      // Salta entre las flores (se mueve vivamente mientras roba).
+      setTimeout(() => {
+        if (!this.niloEl || el !== this.niloEl) return;
+        const next = this._pickPlantTarget();
+        this._niloHop(el, next.x, next.y, true, 480, true);
+      }, 650);
+    }));
+
+    // Ventana de tiempo para detenerlo: si se agota, roba y escapa con las flores.
     const cfg = CREATURES.nilo.interferenceConfig || {};
     clearTimeout(this.niloTimer);
     this.niloTimer = setTimeout(() => {
-      creatureSystem.expireEncounter();
-      this._removeNilo();
+      this._niloFlee(() => creatureSystem.expireEncounter());
     }, cfg.windowMs || 3000);
+  }
+
+  /** Elige una flor activa (o un punto del jardín) como objetivo del salto. */
+  _pickPlantTarget(avoid) {
+    const active = this.flowers.filter((f) => f.active && f.el && f.el.parentNode);
+    if (active.length) {
+      let f = active[randomBetween(0, active.length - 1)];
+      let guard = 0;
+      while (avoid && f && f.el && f.el.style.left === avoid.l && guard < 6) {
+        f = active[randomBetween(0, active.length - 1)];
+        guard++;
+      }
+      return {
+        x: parseFloat(f.el.style.left),
+        y: parseFloat(f.el.style.top),
+        isFlower: true
+      };
+    }
+    return { x: randomBetween(35, 65), y: randomBetween(30, 55) };
+  }
+
+  /** Anima un salto de Nilo hasta (x,y) en % dentro del jardín. */
+  _niloHop(el, x, y, flip, ms, soft) {
+    if (!el || !el.parentNode) return;
+    el.style.transition = `left ${ms}ms ${soft ? "ease-out" : "cubic-bezier(.22,1,.36,1)"}, top ${ms}ms ${soft ? "ease-out" : "cubic-bezier(.22,1,.36,1)"}`;
+    el.classList.toggle("flip", !!flip);
+    el.style.left = x + "%";
+    el.style.top = y + "%";
+  }
+
+  /** Anima a Nilo huyendo fuera del campo de visión (derecha) y llama onExit. */
+  _niloFlee(onExit) {
+    const el = this.niloEl;
+    clearTimeout(this.niloTimer);
+    if (!el || !el.parentNode) {
+      this._removeNilo();
+      onExit && onExit();
+      return;
+    }
+    el.classList.remove("nilo-sneaking");
+    el.classList.add("nilo-fleeing", "flip");
+    el.style.transition = "left 0.6s ease-in, top 0.5s ease-in";
+    el.style.top = randomBetween(38, 58) + "%";
+    el.style.left = "118%";
+    const done = () => {
+      this._removeNilo();
+      onExit && onExit();
+    };
+    setTimeout(done, 640);
   }
 
   _onNiloTap() {
@@ -310,12 +378,13 @@ export class GardenScene {
       setTimeout(() => this.niloEl.classList.remove("hit"), 120);
     }
     if (state.status === "stopped") {
-      // feedback de éxito
-      eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-        text: "🐿️ ¡Detuviste a Nilo antes de que robara!"
-      });
+      // Lo detuviste: Nilo sale corriendo (las flores se salvan).
       clearTimeout(this.niloTimer);
-      this._removeNilo();
+      this._niloFlee(() => {
+        eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+          text: "🐆 ¡Detuviste a Nilo antes de que robara!"
+        });
+      });
     }
   }
 
