@@ -18,7 +18,8 @@ export function sanitizeSave(raw, defaults) {
   try {
     out.resources = {
       petals: isNonNegativeNumber(raw?.resources?.petals) ? raw.resources.petals : defaults.resources.petals,
-      bouquets: isNonNegativeNumber(raw?.resources?.bouquets) ? raw.resources.bouquets : defaults.resources.bouquets
+      bouquets: isNonNegativeNumber(raw?.resources?.bouquets) ? raw.resources.bouquets : defaults.resources.bouquets,
+      zones: sanitizeZoneResources(raw?.resources?.zones, defaults.resources.zones)
     };
     out.progression = {
       currentZone: typeof raw?.progression?.currentZone === "string" ? raw.progression.currentZone : defaults.progression.currentZone,
@@ -55,6 +56,21 @@ export function sanitizeSave(raw, defaults) {
     out.stats = sanitizeStats(raw?.stats);
   } catch (e) {
     return structuredClone(defaults);
+  }
+  return out;
+}
+
+/** Sanitiza las economías por zona: mantiene solo claves conocidas y números válidos. */
+function sanitizeZoneResources(zones, defaults) {
+  const out = {};
+  if (!zones || typeof zones !== "object") {
+    return defaults ? structuredClone(defaults) : {};
+  }
+  for (const [zoneId, res] of Object.entries(zones)) {
+    if (!defaults || !(zoneId in defaults)) continue; // descartar zonas desconocidas
+    const currency = Object.keys(defaults[zoneId])[0];
+    const amount = isNonNegativeNumber(res?.[currency]) ? res[currency] : 0;
+    out[zoneId] = { [currency]: amount };
   }
   return out;
 }

@@ -25,14 +25,14 @@ export class FlowerSystem {
     return { spring_garden: 6, whispering_forest: 8, moon_lake: 8, abandoned_house: 4, memory_garden: 3 }[zoneId] || 6;
   }
 
-  /** Aplica la bonificación de rareza de las mejoras compradas. */
-  rarityBoost() {
-    let boost = 0;
-    for (const id of gameState.state.unlocks.upgrades) {
-      const effect = UPGRADE_BONUS[id];
-      if (effect?.rarityBoost) boost += effect.rarityBoost;
-    }
-    return boost;
+  /** Aplica la bonificación de rareza de las mejoras compradas en la zona. */
+  rarityBoost(zoneId) {
+    return upgradeSystem.bonusFor("rarityBoost", zoneId || this.currentZone());
+  }
+
+  /** Zona activa actual. */
+  currentZone() {
+    return gameState.state.progression.currentZone || "spring_garden";
   }
 
   /**
@@ -45,7 +45,7 @@ export class FlowerSystem {
 
     const pool = [];
     for (const f of available) {
-      const weight = f.spawnChance * (1 + this.rarityBonusFor(f.rarity));
+      const weight = f.spawnChance * (1 + this.rarityBonusFor(f.rarity, zoneId));
       pool.push({ id: f.id, weight });
     }
 
@@ -63,7 +63,7 @@ export class FlowerSystem {
   }
 
   /** Bonus según la rareza (liga el sistema de mejoras con la aparición). */
-  rarityBonusFor(rarity) {
+  rarityBonusFor(rarity, zoneId) {
     const weights = {
       common: 1,
       uncommon: 1,
@@ -71,27 +71,20 @@ export class FlowerSystem {
       special: 1,
       secret: 1
     };
-    return (weights[rarity] - 1) + this.rarityBoost();
+    return (weights[rarity] - 1) + this.rarityBoost(zoneId);
   }
 
-  /** Tiempo de reaparecer (afectado por mejoras). */
+  /** Tiempo de reaparecer (afectado por mejoras de la zona). */
   respawnTime(baseMin, baseMax) {
-    let speed = 1;
-    for (const id of gameState.state.unlocks.upgrades) {
-      if (UPGRADE_BONUS[id]?.respawnSpeed) speed *= UPGRADE_BONUS[id].respawnSpeed;
-    }
+    const speed = 1 + upgradeSystem.bonusFor("respawnSpeed", this.currentZone());
     const min = baseMin / speed;
     const max = baseMax / speed;
     return randomBetween(Math.round(min), Math.round(max));
   }
 
-  /** Probabilidad de pétalo extra por mejores. */
+  /** Probabilidad de pétalo extra por mejores de la zona. */
   extraPetalChance() {
-    let acc = 0;
-    for (const id of gameState.state.unlocks.upgrades) {
-      if (UPGRADE_BONUS[id]?.extraPetalChance) acc += UPGRADE_BONUS[id].extraPetalChance;
-    }
-    return acc;
+    return upgradeSystem.bonusFor("extraPetalChance", this.currentZone());
   }
 
   /** ¿Ha sido descubierta / está disponible esta flor? */
@@ -104,7 +97,4 @@ export class FlowerSystem {
   }
 }
 
-import { UPGRADES } from "../data/upgrades.js";
-const UPGRADE_BONUS = Object.fromEntries(
-  Object.entries(UPGRADES).map(([id, u]) => [id, u.effect])
-);
+import { upgradeSystem } from "./UpgradeSystem.js";

@@ -1,6 +1,11 @@
 /**
  * Datos de mejoras (GDD §12, GDD técnico §11).
  * `effect` es un mapa de bonificaciones interpretado por FarmingSystem/FlowerSystem.
+ *
+ * Actualización 3.1: campo `scope` (global | local | cross) y `currency`
+ * (por defecto "bouquets"). Las mejoras del jardín mantienen scope global
+ * para conservar el comportamiento actual; las de zonas nuevas usarán
+ * scope local + zone.
  */
 export const UPGRADES = {
   careful_fingers: {
@@ -9,6 +14,8 @@ export const UPGRADES = {
     description: "5% de probabilidad de obtener un pétalo adicional.",
     cost: 5,
     tier: 1,
+    scope: "global",
+    currency: "bouquets",
     effect: { extraPetalChance: 0.05 }
   },
   old_watering_can: {
@@ -17,6 +24,8 @@ export const UPGRADES = {
     description: "Las flores reaparecen ligeramente más rápido.",
     cost: 15,
     tier: 1,
+    scope: "global",
+    currency: "bouquets",
     effect: { respawnSpeed: 1.2 }
   },
   fertile_soil: {
@@ -25,6 +34,8 @@ export const UPGRADES = {
     description: "Aumenta la aparición de flores raras.",
     cost: 30,
     tier: 2,
+    scope: "global",
+    currency: "bouquets",
     effect: { rarityBoost: 0.15 }
   },
   garden_bell: {
@@ -33,6 +44,8 @@ export const UPGRADES = {
     description: "Aumenta la posibilidad de aparición de criaturas.",
     cost: 50,
     tier: 2,
+    scope: "global",
+    currency: "bouquets",
     effect: { creatureSpawnBoost: 0.2 }
   },
   moonlight: {
@@ -41,6 +54,8 @@ export const UPGRADES = {
     description: "Desbloquea determinadas interacciones nocturnas.",
     cost: 75,
     tier: 3,
+    scope: "global",
+    currency: "bouquets",
     effect: { nightInteractions: true }
   }
 };

@@ -3,6 +3,7 @@
  * Toda la información persistente pertenece aquí. No se duplica en escenas.
  */
 import { sanitizeSave } from "../utils/validation.js";
+import { ZONES } from "../data/zones.js";
 
 export const SAVE_VERSION = 2;
 
@@ -11,7 +12,9 @@ export function defaultState() {
   return {
     resources: {
       petals: 0,
-      bouquets: 0
+      bouquets: 0,
+      // economías por zona (Actualización 3.1): { zoneId: { currencyId: amount } }
+      zones: defaultZoneResources()
     },
     progression: {
       currentZone: "spring_garden",
@@ -75,6 +78,15 @@ export function defaultState() {
       playTime: 0
     }
   };
+}
+
+/** Semilla cada moneda de zona con 0 (Actualización 3.1). */
+function defaultZoneResources() {
+  const zones = {};
+  for (const z of Object.values(ZONES)) {
+    zones[z.id] = { [z.currency]: 0 };
+  }
+  return zones;
 }
 
 class GameStateStore {
