@@ -62,12 +62,13 @@ export function playCinematicIntro(onComplete) {
   };
 
   const endNarration = () => {
-    // Concertir todas las frases visibles y dar respiro antes del destello.
+    // Dar respiro (con la última frase en pantalla) antes del destello.
     setTimeout(finish, LAST_HOLD_MS);
   };
 
-  // Muestra una frase COMPLETA con fundido; espera; pasa a la siguiente.
-  const playLine = (idx) => {
+  // Muestra una frase COMPLETA; espera; se BORRA; pasa a la siguiente.
+  const showLine = (idx, keep = false) => {
+    textEl.innerHTML = "";
     if (idx >= LINES.length) {
       endNarration();
       return;
@@ -84,12 +85,22 @@ export function playCinematicIntro(onComplete) {
     // Fundido de entrada de la frase (completa).
     requestAnimationFrame(() => { p.style.transition = "opacity 0.8s ease"; p.style.opacity = "1"; });
 
-    // Después del tiempo de lectura, fundir a negro y pasar a la siguiente.
+    if (keep) {
+      // Última frase: dejar respiro antes del destello.
+      endNarration();
+      return;
+    }
+
+    // Tiempo de lectura, luego fundir a negro, pausar y pasar a la siguiente.
     timer = setTimeout(() => {
+      p.style.transition = "opacity 0.5s ease";
       p.style.opacity = "0";
-      // Mantener el párrafo (para dar continuidad) pero pausar.
       timer = setTimeout(() => playLine(idx + 1), GAP_MS);
     }, SHOW_MS);
+  };
+
+  const playLine = (idx) => {
+    showLine(idx, idx >= LINES.length - 1);
   };
 
   // Al omitir, mostrar todas las frases de golpe y terminar.
