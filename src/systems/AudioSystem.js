@@ -1,9 +1,14 @@
 /**
  * AudioSystem (GDD técnico §36-37).
- * MVP: audio sintetizado con Web Audio (sin archivos externos todavía).
- * Volumen separado para música y efectos (GDD §36).
+ * Música por zona con archivos MP3 (assets/audio/music/) y sintetizador
+ * como respaldo para zonas sin pista. Volumen separado música/efectos (§36).
  */
 import { gameState } from "./GameState.js";
+
+/** Pista por zona → archivo MP3 (null = usar sintetizador). */
+const ZONE_TRACKS = {
+  spring_garden: "assets/audio/music/florar.mp3"
+};
 
 class AudioSystem {
   constructor() {
@@ -12,6 +17,9 @@ class AudioSystem {
     this.sfxGain = null;
     this.masterGain = null;
     this.currentMelody = null;
+    this.musicElement = null;
+    this.musicSource = null;
+    this.currentTrack = null;
   }
 
   /** Se llama tras el primer gesto del usuario (requisito de autoplay). */
@@ -47,6 +55,7 @@ class AudioSystem {
   setMusicVolume(v) {
     gameState.settings.musicVolume = v;
     if (this.musicGain) this.musicGain.gain.value = v;
+    if (this.musicElement && !this.ctx) this.musicElement.volume = v;
   }
 
   setSfxVolume(v) {
@@ -119,11 +128,57 @@ class AudioSystem {
     this.currentMelody = setInterval(playNote, 2200);
   }
 
+  /** Música para una zona: usa su pista MP3 si existe, si no el arpegio. */
+  playZoneMusic(zoneId) {
+    const track = ZONE_TRACKS[zoneId] || null;
+    if (track) {
+      if (this.currentTrack === track) return;
+      this.playTrack(track);
+    } else if (this.currentTrack) {
+      this.currentTrack = null;
+      this.playAmbient();
+    } else if (!this.currentMelody && this.ctx) {
+      this.playAmbient();
+    }
+  }
+
+  /** Reproduce un MP3 en bucle, enrutado por el volumen de música. */
+  playTrack(src) {
+    this.stopMusic();
+    const el = new Audio(src);
+    el.loop = true;
+    el.preload = "auto";
+    this.musicElement = el;
+    if (this.ctx) {
+      try {
+        const source = this.ctx.createMediaElementSource(el);
+        source.connect(this.musicGain);
+        this.musicSource = source;
+      } catch (e) {
+        el.volume = gameState.settings.musicVolume ?? 1;
+      }
+    } else {
+      el.volume = gameState.settings.musicVolume ?? 1;
+    }
+    this.currentTrack = src;
+    el.play().catch(() => {});
+  }
+
   stopMusic() {
     if (this.currentMelody) {
       clearInterval(this.currentMelody);
       this.currentMelody = null;
     }
+    if (this.musicElement) {
+      this.musicElement.pause();
+      this.musicElement.src = "";
+      this.musicElement = null;
+    }
+    if (this.musicSource) {
+      try { this.musicSource.disconnect(); } catch (e) { /* noop */ }
+      this.musicSource = null;
+    }
+    this.currentTrack = null;
   }
 }
 

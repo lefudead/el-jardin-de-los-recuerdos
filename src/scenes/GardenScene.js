@@ -224,6 +224,7 @@ export class GardenScene {
   /** Se llama cuando el jugador cambia de zona o de día/noche. */
   refresh() {
     this.applyZoneVisual();
+    audio.playZoneMusic(gs.state.progression.currentZone);
     this.populate();
   }
 
