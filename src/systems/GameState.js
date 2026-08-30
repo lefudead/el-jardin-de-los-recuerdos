@@ -93,7 +93,8 @@ class GameStateStore {
   constructor() {
     this.state = defaultState();
     this.settings = {
-      musicVolume: 1,
+      musicVersion: 2,
+      musicVolume: 0.4,
       sfxVolume: 1,
       vibration: true
     };
@@ -104,6 +105,14 @@ class GameStateStore {
     this.state = sanitizeSave(save, defaultState());
     if (save?.settings) {
       this.settings = { ...this.settings, ...save.settings };
+      // Migración de ajustes: el volumen de música por defecto bajó a 40%
+      // (la música alta tapaba los taps). Ajusta guardados antiguos (~100%).
+      if ((save.settings.musicVersion ?? 1) < 2) {
+        if (typeof save.settings.musicVolume === "number" && save.settings.musicVolume > 0.4) {
+          this.settings.musicVolume = 0.4;
+        }
+        this.settings.musicVersion = 2;
+      }
     }
   }
 
