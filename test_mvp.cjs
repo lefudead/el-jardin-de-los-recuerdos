@@ -3,7 +3,7 @@
 // compra de mejora, guardado y persistencia tras recargar.
 // Usa la API de depuración (window.__gardenDebug) para la parte económica.
 const CDP_PORT = process.argv[2] || "9333";
-const APP = "http://127.0.0.1/index.html";
+const APP = "http://127.0.0.1:8123/index.html";
 
 let pass = 0, fail = 0;
 const check = (name, cond, extra) => {

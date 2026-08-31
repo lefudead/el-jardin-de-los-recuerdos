@@ -20,6 +20,7 @@ import { gameState } from "./systems/GameState.js";
 import { dayNight } from "./systems/DayNightSystem.js";
 import { eventBus } from "./systems/EventBus.js";
 import { narrativeSystem } from "./systems/NarrativeSystem.js";
+import { dialogBox } from "./ui/DialogBox.js";
 import { creatureSystem } from "./systems/CreatureSystem.js";
 import { captureSystem } from "./systems/CaptureSystem.js";
 import { tamingSystem } from "./systems/TamingSystem.js";
@@ -32,7 +33,6 @@ import { CONFIG } from "./config.js";
 import "./ui/Notification.js";
 import "./ui/TopBar.js";
 import "./ui/JournalPanel.js";
-import "./ui/CompanionPanel.js";
 
 const Q = (id) => document.getElementById(id);
 
@@ -204,6 +204,18 @@ window.__garden = {
   reset() {
     saveManager.resetGame();
     location.reload();
+  },
+  niloSpawnDebug() {
+    return {
+      autoSpawn: gardenScene.autoSpawnNilo,
+      disposed: gardenScene._disposed,
+      zone: gameState.state.progression.currentZone,
+      captured: creatureSystem.isCaptured("nilo"),
+      activeEncounter: creatureSystem.hasActiveEncounter(),
+      dialogVisible: dialogBox.visible,
+      niloMeetDone: narrativeSystem.isDone("nilo_meet"),
+      canSpawn: gardenScene._canSpawnNilo()
+    };
   }
 };
 

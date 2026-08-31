@@ -3,7 +3,7 @@
 // -> investigación -> comprar jaula -> capturar -> comprar alimento -> domesticar -> compañero.
 // Requiere: servidor en puerto 80 y Chrome headless con CDP en el puerto indicado.
 const CDP_PORT = process.argv[2] || "9333";
-const APP = "http://127.0.0.1/index.html";
+const APP = "http://127.0.0.1:8123/index.html";
 
 let pass = 0, fail = 0;
 const check = (name, cond, extra) => {
@@ -139,10 +139,12 @@ async function main() {
   check("Nilo se auto-activó como apoyo", await E(ws, `window.__garden.companion.active().includes('nilo')`) === true);
   check("máx apoyos base == 2", await E(ws, `window.__garden.companion.maxActive()`) === 2);
 
-  // El botón del panel lateral ya es visible en el DOM (sin offsetParent: fixed overlay)
-  await sl(300);
-  check("panel lateral: botón de apoyos visible", await E(ws, `(() => { const el = document.getElementById('companion-toggle'); return !!el && el.hidden === false; })()`) === true);
-  check("panel lateral: muestra el contador 1/2", await E(ws, `(() => { const el = document.getElementById('companion-count'); return !!el && el.textContent.includes('1/2'); })()`) === true);
+  // La sección de Apoyos ahora está en el mapa: validar que existe y muestra a Nilo
+  await E(ws, `document.querySelector('.nav-btn[data-screen="map"]').click()`); await sl(400);
+  check("mapa: sección de apoyos visible", await E(ws, `(() => { const el = document.getElementById('map-support'); return !!el && !!el.querySelector('.support-section-title') && el.querySelector('.support-section-title').textContent.includes('Apoyos'); })()`) === true);
+  check("mapa: Nilo aparece como apoyo activo", await E(ws, `(() => { const el = document.getElementById('map-support'); return !!el && [...el.querySelectorAll('.support-slot-name')].some(n => n.textContent === 'Nilo' || n.textContent.includes('Nilo')); })()`) === true);
+  check("mapa: 2 cuadros desbloqueados + 2 bloqueados", await E(ws, `(() => { const el = document.getElementById('map-support'); const slots=[...el.querySelectorAll('.support-slot')]; const locked=[...el.querySelectorAll('.support-slot.locked')].length; return !!el && slots.length===4 && locked===2; })()`) === true);
+  await E(ws, `document.querySelector('.nav-btn[data-screen="garden"]').click()`); await sl(300);
 
   // Comprar 2 slots hasta llegar a máx 4, y rechazar un 3º
   await E(ws, `window.__garden.grantBouquets(300)`); await sl(150);

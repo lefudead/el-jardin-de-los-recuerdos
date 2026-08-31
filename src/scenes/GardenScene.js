@@ -40,6 +40,8 @@ export class GardenScene {
     this._tapCountSinceCheck = 0;
     this.autoSpawnNilo = true;
     this._niloSpawnTimer = null;
+    this._niloTutorialPending = false;
+    this._niloTutorialProbe = null;
   }
 
   /** Configura el contenedor y los listeners del área. */
@@ -61,6 +63,11 @@ export class GardenScene {
       clearInterval(this._niloSpawnTimer);
       this._niloSpawnTimer = null;
     }
+    if (this._niloTutorialProbe) {
+      clearInterval(this._niloTutorialProbe);
+      this._niloTutorialProbe = null;
+    }
+    this._niloTutorialPending = false;
     this._disposed = true;
     this._removeNilo();
     this.clear();
@@ -163,10 +170,48 @@ export class GardenScene {
         text: "🌿 Algo corre entre las flores... no llegas a verlo bien."
       });
     }
-    // Ruido de Nilo a partir de ciertos taps, si aún no domesticado
+    // Ruido de Nilo a partir de ciertos taps, si aún no domesticado.
+    // Si el tutorial acaba de dispararse, programamos que Nilo aparezca
+    // garantizado en cuanto su diálogo se cierre (en vez de dejar que dependa
+    // de la aparición aleatoria, que podía no ocurrir nunca de inmediato).
     if (gs.state.stats.totalTaps >= 15) {
-      narrativeSystem.tryNiloTutorial();
+      if (narrativeSystem.tryNiloTutorial()) {
+        this._scheduleNiloSpawn();
+      }
     }
+  }
+
+  /**
+   * Asegura que Nilo aparezca determinísticamente justo después del primer
+   * tutorial (texto: "Tócalo 3 veces"). Sondea cada 500 ms hasta que la escena
+   * pueda spawnearlo (diálogo fuera de pantalla, zona y flags correctos) o
+   * abandona tras 20 s para que la aparición aleatoria normal tome el relevo.
+   */
+  _scheduleNiloSpawn() {
+    if (this._niloTutorialProbe) {
+      clearInterval(this._niloTutorialProbe);
+      this._niloTutorialProbe = null;
+    }
+    this._niloTutorialPending = true;
+    this._niloTutorialProbe = setInterval(() => {
+      if (this._disposed || !this._niloTutorialPending) {
+        if (this._niloTutorialProbe) { clearInterval(this._niloTutorialProbe); this._niloTutorialProbe = null; }
+        return;
+      }
+      if (!this._canSpawnNilo()) return; // aún hay diálogo abierto o zona cambiada
+      this._niloTutorialPending = false;
+      if (this._niloTutorialProbe) { clearInterval(this._niloTutorialProbe); this._niloTutorialProbe = null; }
+      this._trySpawnNilo();
+    }, 500);
+
+    // Autolimpieza: si algo impide el spawn, volvemos al comportamiento aleatorio.
+    setTimeout(() => {
+      if (this._niloTutorialProbe) {
+        clearInterval(this._niloTutorialProbe);
+        this._niloTutorialProbe = null;
+      }
+      this._niloTutorialPending = false;
+    }, 20000);
   }
 
   /** Oculta la flor y la agenda para reaparecer. */
@@ -241,6 +286,10 @@ export class GardenScene {
     if (this.container) {
       topBar.setTime(gs.state.progression.timeOfDay);
     }
+    // Fondo temático de la zona: clase en <body> que el CSS usa para pintar
+    // cada bioma (jardín, bosque, lago...).
+    document.body.classList.remove("zone-spring_garden", "zone-whispering_forest", "zone-moon_lake");
+    if (zone) document.body.classList.add("zone-" + zone);
   }
 
   clear() {
@@ -264,7 +313,10 @@ export class GardenScene {
     // Nilo solo deja de aparecer cuando lo capturas (y ya lo tienes).
     if (creatureSystem.isCaptured("nilo")) return false;
     if (creatureSystem.hasActiveEncounter()) return false;
-    if (dialogBox.visible) return false;
+    // Solo bloquea si el diálogo está realmente en pantalla. Un flag residual
+    // (p. ej. tras reiniciar con el diálogo abierto) no debe bloquear para siempre.
+    if (dialogBox.root && dialogBox.root.classList.contains("show")) return false;
+    // Hasta superar el primer encuentro/tutorial, Nilo no debe aparecer por su cuenta.
     if (!narrativeSystem.isDone("nilo_meet")) return false;
     return true;
   }

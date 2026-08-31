@@ -63,6 +63,56 @@ export const FLOWERS = {
     notes: "Puede aparecer después de completar determinados eventos.",
     special: { type: "after_event", event: "any" }
   },
+  // Fichas de vegetación del bosque (la moneda local son hojas).
+  // Se recolectan como "flores" del bioma: hierba, hojas y hojas caídas.
+  forest_grass: {
+    id: "forest_grass",
+    name: "Hierba del Bosque",
+    rarity: "common",
+    petalValue: 1,
+    zone: "whispering_forest",
+    time: ["day", "sunset", "night"],
+    emoji: "🌿",
+    spawnChance: 0.6,
+    notes: "Briznas de hierba fresca que crecen por todo el sotobosque.",
+    special: null
+  },
+  forest_leaves: {
+    id: "forest_leaves",
+    name: "Hojas",
+    rarity: "common",
+    petalValue: 1,
+    zone: "whispering_forest",
+    time: ["day", "sunset", "night"],
+    emoji: "🍃",
+    spawnChance: 0.5,
+    notes: "Hojas verdes que el viento arrastra entre las ramas.",
+    special: null
+  },
+  forest_maple: {
+    id: "forest_maple",
+    name: "Hojas de Arce",
+    rarity: "uncommon",
+    petalValue: 2,
+    zone: "whispering_forest",
+    time: ["day", "sunset", "night"],
+    emoji: "🍁",
+    spawnChance: 0.28,
+    notes: "Hojas de arce de color otoñal, difíciles de encontrar.",
+    special: null
+  },
+  forest_fallen: {
+    id: "forest_fallen",
+    name: "Hojas Caídas",
+    rarity: "rare",
+    petalValue: 3,
+    zone: "whispering_forest",
+    time: ["day", "sunset", "night"],
+    emoji: "🍂",
+    spawnChance: 0.12,
+    notes: "Hojas secas que crujen bajo los pies y guardan secretos.",
+    special: null
+  },
   moonflower: {
     id: "moonflower",
     name: "Flor Lunar",
