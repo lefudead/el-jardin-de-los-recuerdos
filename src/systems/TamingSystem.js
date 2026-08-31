@@ -24,6 +24,11 @@ export class TamingSystem {
     return gameState.state.creatures.trust?.[creatureId] || 0;
   }
 
+  /** Amistad (SIN LÍMITE). Sube al alimentar/cuidar; cada 200 de Nilo da +1 flor. */
+  getFriendship(creatureId) {
+    return gameState.state.creatures.friendship?.[creatureId] || 0;
+  }
+
   isCaptured(creatureId) {
     return gameState.state.creatures.captured.includes(creatureId);
   }
@@ -76,7 +81,10 @@ export class TamingSystem {
 
     const trust = gameState.state.creatures.trust || (gameState.state.creatures.trust = {});
     trust[creatureId] = Math.min(TRUST_MAX, (trust[creatureId] || 0) + gainedTrust);
-    eventBus.emit(eventBus.constructor.EVENTS.CREATURE_FED, { id: creatureId, gainedTrust });
+    // Amistad: sin límite, sube con cada alimentación exitosa (misma cantidad).
+    const friendship = gameState.state.creatures.friendship || (gameState.state.creatures.friendship = {});
+    friendship[creatureId] = (friendship[creatureId] || 0) + gainedTrust;
+    eventBus.emit(eventBus.constructor.EVENTS.CREATURE_FED, { id: creatureId, gainedTrust, friendship: friendship[creatureId] });
 
     let tamed = false;
     if (trust[creatureId] >= TRUST_MAX && !this.isTamed(creatureId)) {

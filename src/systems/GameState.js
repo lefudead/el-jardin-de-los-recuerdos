@@ -47,7 +47,9 @@ export function defaultState() {
       // criaturas domesticadas (id)
       tamed: [],
       // confianza por criatura 0-100 (GDD §22, §26)
-      trust: {}
+      trust: {},
+      // amistad por criatura (SIN LÍMITE): Nilo aporta +1 flor extra por cada 200
+      friendship: {}
     },
     // compañeros "apoyos" activos: criaturas domesticadas que ayudan ahora mismo.
     // En el jardín se elige cuáles están activos (máx base 2, ampliable a 4 en tienda).

@@ -33,10 +33,21 @@ export class FlowerSystem {
     return p.reduced;
   }
 
-  /** Capacidad efectiva: capacidad base menos la penalización vigente (mín. 1). */
+  /** Bonificación de flores extra que aportan las criaturas por su amistad.
+   *  Cada 200 de amistad de Nilo = +1 flor de capacidad (sin límite). */
+  friendshipFlowerBonus() {
+    const friends = gameState.state?.creatures?.friendship || {};
+    let bonus = 0;
+    for (const friendship of Object.values(friends)) {
+      bonus += Math.floor(Math.max(0, friendship) / 200);
+    }
+    return bonus;
+  }
+
+  /** Capacidad efectiva: capacidad base - penalización + bonif. de amistad (mín. 1). */
   effectiveZoneCapacity(zoneId) {
     const base = this.zoneCapacity(zoneId);
-    return Math.max(1, base - this.maxFlowerPenalty(zoneId));
+    return Math.max(1, base - this.maxFlowerPenalty(zoneId) + this.friendshipFlowerBonus());
   }
 
   /** Aplica la bonificación de rareza de las mejoras compradas en la zona. */

@@ -11,6 +11,7 @@ import { openJournal } from "./scenes/JournalScene.js";
 import { shopScene } from "./scenes/ShopScene.js";
 import { settingsScene } from "./scenes/SettingsScene.js";
 import { saveManager } from "./systems/SaveInstance.js";
+import { flowerSystem } from "./systems/FlowerInstance.js";
 import { companionSystem } from "./systems/CompanionSystem.js";
 import { investigationSystem } from "./systems/InvestigationSystem.js";
 import { playCinematicIntro } from "./ui/CinematicIntro.js";
@@ -141,6 +142,11 @@ window.__garden = {
   economy,
   grantBouquets: (n) => economy.addBouquets(n),
   addPetals: (n) => economy.addPetals(n),
+  // Debug amistad: consultar y forzar (tests)
+  friendship: () => ({ ...(gameState.state.creatures.friendship || {}) }),
+  setFriendship: (cid, v) => { const f = gameState.state.creatures.friendship || (gameState.state.creatures.friendship = {}); f[cid] = v; saveManager.saveGame(); return f[cid]; },
+  friendshipFlowerBonus: () => flowerSystem.friendshipFlowerBonus(),
+  effectiveZoneCapacity: (z) => flowerSystem.effectiveZoneCapacity(z || gameState.state.progression.currentZone),
   spawnNilo() {
     gardenScene._trySpawnNilo();
   },

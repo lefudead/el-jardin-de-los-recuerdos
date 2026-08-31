@@ -41,7 +41,8 @@ export function sanitizeSave(raw, defaults) {
       cages: toMapStrings(raw?.creatures?.cages),
       captured: toArray(raw?.creatures?.captured),
       tamed: toArray(raw?.creatures?.tamed),
-      trust: toMapNumbers(raw?.creatures?.trust)
+      trust: toMapNumbers(raw?.creatures?.trust),
+      friendship: toMapNumbers(raw?.creatures?.friendship)
     };
     out.companions = sanitizeCompanions(raw?.companions, defaults.companions);
     out.inventory = sanitizeInventory(raw?.inventory);

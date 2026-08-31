@@ -51,6 +51,9 @@ export class GardenScene {
       this._niloSpawnTimer = null;
     }
     this._niloSpawnTimer = setInterval(() => this._autoSpawnTick(), CONFIG.nilo.spawnIntervalMs || 30000);
+    // Al alimentar/cuidar sube la amistad: reequilibramos el campo por si cambió
+    // la capacidad (cada 200 amistad = +1 flor extra que regala Nilo).
+    eventBus.on(eventBus.constructor.EVENTS.CREATURE_FED, () => this._rebalanceFlowers());
   }
 
   dispose() {
@@ -294,15 +297,15 @@ export class GardenScene {
     return false;
   }
 
-  /** Maneja el robo de una flor por Nilo: reduce la capacidad máx. 20 min. */
+  /** Maneja el robo de una flor por Nilo: reduce la capacidad máx. 30 s. */
   _niloStealsFlower() {
     const zone = gs.state.progression.currentZone;
     const p = gs.state.penalties.maxFlowers[zone] || { reduced: 0, untilMs: 0 };
-    const untilMs = Date.now() + (CONFIG.nilo.stealPenaltyMs || 20 * 60 * 1000);
+    const untilMs = Date.now() + (CONFIG.nilo.stealPenaltyMs || 30 * 1000);
     gs.state.penalties.maxFlowers[zone] = { reduced: p.reduced + 1, untilMs };
     saveManager.saveGame();
     eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-      text: "🐆 ¡Nilo se llevó una flor! La generación máxima de flores bajó en 1 (20 min)."
+      text: "🐆 ¡Nilo se llevó una flor! La generación máxima de flores bajó en 1 (30 s)."
     });
     // reequilibrar el campo: eliminar una flor si quedan más de la capacidad efectiva
     this._trimToEffectiveCapacity();
@@ -317,6 +320,30 @@ export class GardenScene {
     while (active.length > eff) {
       const f = active.pop();
       this.hideThenRespawn(f);
+    }
+  }
+
+  /** Ajusta el campo a la capacidad efectiva: trima si sobran, o añade flores si faltan
+   *  (p. ej. al crecer la amistad de Nilo y ganar flores extra). */
+  _rebalanceFlowers() {
+    const zone = gs.state.progression.currentZone;
+    const time = gs.state.progression.timeOfDay;
+    const eff = flowerSystem.effectiveZoneCapacity(zone);
+    const active = this.flowers.filter((f) => f.active);
+    if (active.length > eff) {
+      this._trimToEffectiveCapacity();
+      return;
+    }
+    // Añadir flores nuevas hasta llegar a la capacidad efectiva.
+    let missing = eff - active.length;
+    let guard = 0;
+    while (missing > 0 && guard++ < 50) {
+      const spawned = flowerSystem.spawnFlowers(zone, time, 1);
+      if (spawned.length === 0) break;
+      const s = spawned[0];
+      if (this.flowers.length >= 60) break;
+      this.addFlower(s.id, s.x, s.y);
+      missing--;
     }
   }
 
