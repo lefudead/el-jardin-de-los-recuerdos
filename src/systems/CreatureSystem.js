@@ -46,9 +46,9 @@ export class CreatureSystem {
     return gameState.state.creatures.tamed.includes(id);
   }
 
-  /** ¿Una criatura puede interferir (no está domesticada)? */
+  /** ¿Una criatura puede interferir (no está capturada)? */
   canInterfere(id) {
-    return !this.isTamed(id);
+    return !this.isCaptured(id);
   }
 
   availableIn(zoneId, timeOfDay) {
@@ -102,6 +102,8 @@ export class CreatureSystem {
     };
 
     this._discover(creatureId);
+    // Encontrar a la criatura cuenta hacia el 100% de descubrimiento (5 veces).
+    investigationSystem.addFind(creatureId);
     eventBus.emit(eventBus.constructor.EVENTS.NILO_WARNING, { creatureId, name: c.name, emoji: c.emoji });
     eventBus.emit(eventBus.constructor.EVENTS.CREATURE_INTERFERENCE, {
       creatureId,
@@ -134,11 +136,10 @@ export class CreatureSystem {
     this._clearTimer();
     ev.status = "stopped";
     eventBus.emit(eventBus.constructor.EVENTS.CREATURE_STOPPED, { creatureId: ev.creatureId });
-    // Observaciones + avance de investigación (GDD §16, §33).
+    // Observaciones (GDD §16, §33). El descubrimiento avanza con los encuentros.
     this._observe(ev.creatureId, "steals_flowers");
     this._observe(ev.creatureId, "appears_morning");
     this._observe(ev.creatureId, "reacts_to_cages");
-    investigationSystem.addResearch(ev.creatureId, 40);
     saveManager.saveGame();
     this.active = null;
     return true;
@@ -171,7 +172,6 @@ export class CreatureSystem {
       stolen
     });
     this._observe(ev.creatureId, "steals_flowers");
-    investigationSystem.addResearch(ev.creatureId, 10);
     saveManager.saveGame();
     this.active = null;
   }

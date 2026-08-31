@@ -11,6 +11,8 @@ import { openJournal } from "./scenes/JournalScene.js";
 import { shopScene } from "./scenes/ShopScene.js";
 import { settingsScene } from "./scenes/SettingsScene.js";
 import { saveManager } from "./systems/SaveInstance.js";
+import { companionSystem } from "./systems/CompanionSystem.js";
+import { investigationSystem } from "./systems/InvestigationSystem.js";
 import { playCinematicIntro } from "./ui/CinematicIntro.js";
 import { gameState } from "./systems/GameState.js";
 import { dayNight } from "./systems/DayNightSystem.js";
@@ -28,6 +30,7 @@ import { CONFIG } from "./config.js";
 import "./ui/Notification.js";
 import "./ui/TopBar.js";
 import "./ui/JournalPanel.js";
+import "./ui/CompanionPanel.js";
 
 const Q = (id) => document.getElementById(id);
 
@@ -134,6 +137,7 @@ window.__garden = {
   get state() { return gameState.state; },
   gardenScene,
   creatureSystem,
+  investigation: investigationSystem,
   economy,
   grantBouquets: (n) => economy.addBouquets(n),
   addPetals: (n) => economy.addPetals(n),
@@ -179,6 +183,13 @@ window.__garden = {
       if (last.tamed) break;
     }
     return last;
+  },
+  companion: {
+    list: () => companionSystem.getCompanions().map((c) => c.id),
+    active: () => (gameState.state.companions?.active || []).slice(),
+    maxActive: () => companionSystem.maxActive(),
+    toggle: (id) => companionSystem.toggleActive(id),
+    buySlot: () => companionSystem.buySlot()
   },
   reset() {
     saveManager.resetGame();

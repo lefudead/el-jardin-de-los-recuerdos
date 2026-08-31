@@ -9,6 +9,7 @@ import { gameState } from "./GameState.js";
 import { economy } from "./EconomyInstance.js";
 import { eventBus } from "./EventBus.js";
 import { inventorySystem } from "./InventorySystem.js";
+import { companionSystem } from "./CompanionSystem.js";
 
 export class RewardSystem {
   give(reward) {
@@ -80,6 +81,8 @@ export class RewardSystem {
           gameState.state.creatures.tamed.push(cid);
           gameState.state.stats.creaturesTamed++;
           eventBus.emit(eventBus.constructor.EVENTS.CREATURE_TAMED, { id: cid });
+          // Nueva compañera: se activa como apoyo si hay hueco libre.
+          companionSystem.autoActivate(cid);
           return true;
         }
         return false;

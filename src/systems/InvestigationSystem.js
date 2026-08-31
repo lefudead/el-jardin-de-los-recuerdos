@@ -1,12 +1,32 @@
 /**
  * InvestigationSystem (GDD técnico §18, GDD §31-33): observaciones,
  * investigación y elegibilidad para captura.
+ *
+ * Descubrimiento (GDD §33): el 100% de descubrimiento de una criatura se
+ * alcanza encontrándola 5 veces. Cada encuentro cuenta como un 20%.
  */
 import { CREATURES } from "../data/creatures.js";
 import { gameState } from "./GameState.js";
 import { percent } from "../utils/math.js";
 
+export const FINDS_FOR_DISCOVERY = 5;
+
 export class InvestigationSystem {
+  /** Nº de veces que se ha encontrado a la criatura (GDD §33). */
+  getFinds(creatureId) {
+    return gameState.state.creatures.finds?.[creatureId] || 0;
+  }
+
+  /** Registra un encuentro: sube la investigación proporcional (5 → 100%). */
+  addFind(creatureId) {
+    const finds = gameState.state.creatures.finds || (gameState.state.creatures.finds = {});
+    finds[creatureId] = (finds[creatureId] || 0) + 1;
+    const pct = Math.min(100, Math.round((finds[creatureId] / FINDS_FOR_DISCOVERY) * 100));
+    const research = gameState.state.creatures.research || (gameState.state.creatures.research = {});
+    research[creatureId] = Math.max(research[creatureId] || 0, pct);
+    return finds[creatureId];
+  }
+
   getObservations(creatureId) {
     return gameState.state.creatures.observations[creatureId] || [];
   }
@@ -35,11 +55,14 @@ export class InvestigationSystem {
   }
 
   /**
-   * Porcentaje de investigación 0-100.
-   * Usa `research[creatureId]` explícito si existe; si no, lo deriva de las
-   * observaciones encontradas sobre el total (compatibilidad con guardados v1).
+   * Porcentaje de descubrimiento 0-100.
+   * Si la criatura se ha encontrado alguna vez, el descubrimiento crece con
+   * los encuentros (100% = 5 veces). Si todavía no hay encuentros, deriva del
+   * `research` explícito o de las observaciones (compatibilidad v1/v3).
    */
   getProgress(creatureId) {
+    const finds = this.getFinds(creatureId);
+    if (finds > 0) return Math.min(100, Math.round((finds / FINDS_FOR_DISCOVERY) * 100));
     const explicit = gameState.state.creatures.research?.[creatureId];
     if (typeof explicit === "number" && explicit >= 0) return Math.min(100, Math.round(explicit));
     const found = this.getObservations(creatureId).filter((o) => o !== "__discovered__").length;

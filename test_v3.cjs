@@ -88,14 +88,23 @@ async function main() {
     await advanceDialogs(ws);
   }
 
-  // Encender encuentro forzado de Nilo
-  await E(ws, `window.__garden.spawnNiloForce()`); await sl(200);
-  const niloVisible = await E(ws, `document.querySelector('.nilo') !== null`);
-  check("Nilo aparece en el jardín (robando)", niloVisible === true);
+  // Encender encuentro forzado de Nilo 5 veces: el 100% de descubrimiento
+  // requiere encontrar a la criatura 5 veces (GDD §33).
+  let finds = 0;
+  for (let i = 0; i < 5; i++) {
+    await E(ws, `window.__garden.spawnNiloForce()`); await sl(200);
+    const niloVisible = await E(ws, `document.querySelector('.nilo') !== null`);
+    if (i === 0) check("Nilo aparece en el jardín (robando)", niloVisible === true);
+    // detener: 3 taps (como la UI)
+    await E(ws, `(() => { window.__garden.creatureSystem.onPlayerTap('nilo'); window.__garden.creatureSystem.onPlayerTap('nilo'); window.__garden.creatureSystem.onPlayerTap('nilo'); })()`);
+    await sl(250);
+    await E(ws, `window.__garden.gardenScene._removeNilo()`);
+    finds = await E(ws, `window.__garden.state.creatures.finds['nilo'] ?? 0`);
+    if (finds < i + 1) { await sl(400); finds = await E(ws, `window.__garden.state.creatures.finds['nilo'] ?? 0`); }
+  }
+  check("Nilo encontrado 5 veces (finds)", finds === 5, `finds=${finds}`);
 
-  // detener: 3 taps el jugador (via debug + directo a la UI)
-  // Simulamos los taps del jugador llamando onPlayerTap directamente igual que la UI
-  const stopState = await E(ws, `(() => { let r; r = window.__garden.creatureSystem.onPlayerTap('nilo'); r = window.__garden.creatureSystem.onPlayerTap('nilo'); r = window.__garden.creatureSystem.onPlayerTap('nilo'); return { status: r, active: window.__garden.creatureSystem.hasActiveEncounter() }; })()`);
+  const stopState = await E(ws, `({ active: window.__garden.creatureSystem.hasActiveEncounter() })`);
   check("Nilo detenido tras 3 taps (sin encuentro activo)", stopState.active === false, JSON.stringify(stopState));
 
   const researchAfterStop = await E(ws, `window.__garden.state.creatures.research['nilo'] ?? -1`);
@@ -103,6 +112,8 @@ async function main() {
   check("investigación avanzó tras la intervención", typeof researchAfterStop === "number" && researchAfterStop > 0);
 
   check("Nilo está descubierto", await E(ws, `window.__garden.state.creatures.discovered.includes('nilo')`) === true);
+
+  check("descubrimiento 100% (5 encuentros)", await E(ws, `window.__garden.investigation.getProgress('nilo')`) === 100);
 
   // Financiar y comprar jaula + capturar
   await E(ws, `window.__garden.grantBouquets(200)`); await sl(150);
@@ -112,12 +123,37 @@ async function main() {
   check("Nilo capturado", capRes && capRes.ok === true, JSON.stringify(capRes));
   check("stats criaturasCapturadas == 1", await E(ws, `window.__garden.state.stats.creaturesCaptured === 1`) === true);
 
+  // Tras capturarlo, Nilo ya NO debe aparecer (solo deja de aparecer al capturarlo).
+  await E(ws, `window.__garden.spawnNiloForce()`); await sl(200);
+  const niloAfterCapture = await E(ws, `document.querySelector('.nilo') === null`);
+  check("tras capturar, Nilo no vuelve a interferir", niloAfterCapture === true);
+
   // Comprar alimento (varias raciones) y domesticar (10 taps dentro del tiempo)
   const foodRes = await E(ws, `(() => { let last="nope"; for(let i=0;i<6;i++){ last = window.__garden.buyFood('nilo'); } return last; })()`);
   check("alimento comprado", foodRes === "ok", String(foodRes));
   const tameRes = await E(ws, `window.__garden.feedAndTame('nilo', 10, true)`);
   check("Nilo domesticado → compañero", tameRes && tameRes.tamed === true, JSON.stringify(tameRes));
   check("stats criaturasTamed == 1", await E(ws, `window.__garden.state.stats.creaturesTamed === 1`) === true);
+
+  // ===== Sistema de apoyos (compañeros activos) =====
+  check("Nilo se auto-activó como apoyo", await E(ws, `window.__garden.companion.active().includes('nilo')`) === true);
+  check("máx apoyos base == 2", await E(ws, `window.__garden.companion.maxActive()`) === 2);
+
+  // El botón del panel lateral ya es visible en el DOM (sin offsetParent: fixed overlay)
+  await sl(300);
+  check("panel lateral: botón de apoyos visible", await E(ws, `(() => { const el = document.getElementById('companion-toggle'); return !!el && el.hidden === false; })()`) === true);
+  check("panel lateral: muestra el contador 1/2", await E(ws, `(() => { const el = document.getElementById('companion-count'); return !!el && el.textContent.includes('1/2'); })()`) === true);
+
+  // Comprar 2 slots hasta llegar a máx 4, y rechazar un 3º
+  await E(ws, `window.__garden.grantBouquets(300)`); await sl(150);
+  const slot1 = await E(ws, `window.__garden.companion.buySlot()`);
+  check("slot extra 1 comprado (máx → 3)", slot1 && slot1.ok === true && slot1.max === 3, JSON.stringify(slot1));
+  const slot2 = await E(ws, `window.__garden.companion.buySlot()`);
+  check("slot extra 2 comprado (máx → 4)", slot2 && slot2.ok === true && slot2.max === 4, JSON.stringify(slot2));
+  const slot3 = await E(ws, `window.__garden.companion.buySlot()`);
+  check("3er slot rechazado (máx ya 4)", slot3 && slot3.ok === false, JSON.stringify(slot3));
+  check("slotsBought == 2 persistido", await E(ws, `window.__garden.state.companions.slotsBought === 2`) === true);
+  check("máx apoyos final == 4", await E(ws, `window.__garden.companion.maxActive()`) === 4);
 
   // Memoria restaurada (la cinta) tras domesticar
   await sl(1200); // esperar a que el diálogo de memoria se dispare

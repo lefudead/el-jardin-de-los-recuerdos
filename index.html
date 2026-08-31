@@ -98,6 +98,18 @@
     <!-- NOTIFICATION -->
     <div id="notification" class="notification"></div>
     <div id="toast" class="toast"></div>
+
+    <!-- COMPANION SUPPORT PANEL (apoyos activos) -->
+    <button id="companion-toggle" class="companion-toggle" aria-label="Apoyos" hidden>🐾</button>
+    <aside id="companion-panel" class="companion-panel" hidden>
+      <div class="companion-panel-header">
+        <span>🤝 Apoyos</span>
+        <button id="companion-close" class="companion-close" aria-label="Cerrar">✕</button>
+      </div>
+      <p id="companion-count" class="companion-count"></p>
+      <div id="companion-list" class="companion-list"></div>
+      <p class="companion-hint">Los apoyos activos aportan su habilidad en el jardín.</p>
+    </aside>
   </div>
 
   <script type="module" src="src/main.js"></script>

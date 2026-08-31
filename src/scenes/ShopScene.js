@@ -12,6 +12,7 @@ import { inventorySystem } from "../systems/InventorySystem.js";
 import { investigationSystem } from "../systems/InvestigationSystem.js";
 import { captureSystem } from "../systems/CaptureSystem.js";
 import { tamingSystem } from "../systems/TamingSystem.js";
+import { companionSystem } from "../systems/CompanionSystem.js";
 import { CAGES } from "../data/cages.js";
 import { FOODS } from "../data/foods.js";
 import { CREATURES } from "../data/creatures.js";
@@ -41,6 +42,33 @@ export class ShopScene {
           ${owned ? "✓" : `${up.cost} 💐`}
         </button>
       </div>`;
+    }
+
+    // Apoyos (compañeros activos)
+    html += `<div class="shop-section-title">🤝 Apoyos</div>`;
+    const nComp = companionSystem.getCompanions().length;
+    if (nComp === 0) {
+      html += `<div class="shop-card"><p>Domestica a una criatura para desbloquear la sección de apoyos.</p></div>`;
+    } else {
+      html += `<div class="shop-card">
+        <div>
+          <h4>🐾 Apoyos activos</h4>
+          <p>${companionSystem.getActiveCompanions().length}/${companionSystem.maxActive()} criaturas apoyando ahora mismo. Compra un slot extra para ampliar el máximo (hasta 4).</p>
+        </div>
+      </div>`;
+      const next = companionSystem.nextSlotCost();
+      if (next !== null) {
+        const affordSlot = economy.canAfford(next);
+        html += `<div class="shop-card">
+          <div>
+            <h4>👜 Slot de apoyo extra</h4>
+            <p>Sube el máximo de apoyos activos de ${companionSystem.maxActive()} a ${companionSystem.maxActive() + 1}.</p>
+          </div>
+          <button class="btn buy-btn" data-buy-slot ${affordSlot ? "" : "disabled"}>${next} 💐</button>
+        </div>`;
+      } else {
+        html += `<div class="shop-card"><div><h4>👜 Slots al máximo</h4><p>Ya tienes ${companionSystem.maxActive()} apoyos activos simultáneos (máximo).</p></div></div>`;
+      }
     }
 
     // Jaulas
@@ -83,6 +111,18 @@ export class ShopScene {
       } else {
         audio.playError();
         eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: "No se pudo comprar." });
+      }
+      this.render();
+    }));
+
+    // wire cage slot extra de apoyos
+    this.el.querySelectorAll("[data-buy-slot]").forEach((btn) => btn.addEventListener("click", () => {
+      const res = companionSystem.buySlot();
+      if (res.ok) {
+        audio.playBuy();
+      } else {
+        audio.playError();
+        eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: "No se pudo comprar el slot." });
       }
       this.render();
     }));

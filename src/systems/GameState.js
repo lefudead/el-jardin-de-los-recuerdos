@@ -37,6 +37,9 @@ export function defaultState() {
       observations: {},
       // investigación 0-100 por criatura (GDD §31, §33)
       research: {},
+      // nº de veces que se ha encontrado a la criatura (GDD §33):
+      // 100% de descubrimiento = 5 encuentros
+      finds: {},
       // jaulas vinculadas: { creatureId: cageId }
       cages: {},
       // criaturas capturadas (id)
@@ -45,6 +48,13 @@ export function defaultState() {
       tamed: [],
       // confianza por criatura 0-100 (GDD §22, §26)
       trust: {}
+    },
+    // compañeros "apoyos" activos: criaturas domesticadas que ayudan ahora mismo.
+    // En el jardín se elige cuáles están activos (máx base 2, ampliable a 4 en tienda).
+    companions: {
+      active: [],
+      // máximo simultáneo elevado por mejoras compradas (0 = base 2)
+      slotsBought: 0
     },
     inventory: {
       items: [],   // { id, quantity }
@@ -134,6 +144,7 @@ class GameStateStore {
       penalties: this.state.penalties,
       unlocks: this.state.unlocks,
       creatures: this.state.creatures,
+      companions: this.state.companions,
       inventory: this.state.inventory,
       journal: this.state.journal,
       puzzles: this.state.puzzles,

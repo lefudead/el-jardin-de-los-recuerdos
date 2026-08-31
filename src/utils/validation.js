@@ -37,11 +37,13 @@ export function sanitizeSave(raw, defaults) {
       discovered: toArray(raw?.creatures?.discovered),
       observations: sanitizeObservations(raw?.creatures?.observations),
       research: toMapNumbers(raw?.creatures?.research),
+      finds: toMapNumbers(raw?.creatures?.finds),
       cages: toMapStrings(raw?.creatures?.cages),
       captured: toArray(raw?.creatures?.captured),
       tamed: toArray(raw?.creatures?.tamed),
       trust: toMapNumbers(raw?.creatures?.trust)
     };
+    out.companions = sanitizeCompanions(raw?.companions, defaults.companions);
     out.inventory = sanitizeInventory(raw?.inventory);
     out.journal = {
       entries: toArray(raw?.journal?.entries),
@@ -123,6 +125,19 @@ function sanitizePenalties(pen, defaults) {
         out.maxFlowers[zoneId] = { reduced, untilMs };
       }
     }
+  }
+  return out;
+}
+
+/** Sanitiza los compañeros activos (ids de criaturas domesticadas) y slots comprados. */
+function sanitizeCompanions(comp, defaults) {
+  const out = { active: [], slotsBought: 0 };
+  const base = defaults?.slotsBought || 0;
+  if (comp && typeof comp === "object") {
+    out.active = toArray(comp.active);
+    out.slotsBought = isNonNegativeNumber(comp.slotsBought) ? Math.min(2, Math.floor(comp.slotsBought)) : base;
+  } else {
+    out.slotsBought = base;
   }
   return out;
 }

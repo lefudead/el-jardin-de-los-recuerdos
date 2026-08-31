@@ -255,7 +255,8 @@ export class GardenScene {
   _canSpawnNilo() {
     if (this._disposed) return false;
     if (gs.state.progression.currentZone !== "spring_garden") return false;
-    if (creatureSystem.isTamed("nilo")) return false;
+    // Nilo solo deja de aparecer cuando lo capturas (y ya lo tienes).
+    if (creatureSystem.isCaptured("nilo")) return false;
     if (creatureSystem.hasActiveEncounter()) return false;
     if (dialogBox.visible) return false;
     if (!narrativeSystem.isDone("nilo_meet")) return false;
@@ -349,6 +350,8 @@ export class GardenScene {
    *  y, al final, escapa llevándoselas fuera del campo de visión. */
   _renderNilo() {
     if (!this.container) return;
+    // Solo se dibuja si hay un encuentro real de Nilo activo (no fantasma).
+    if (!creatureSystem.hasActiveEncounter() || !creatureSystem.isEncounterCreature("nilo")) return;
     if (this.niloEl) return;
     const nilo = CREATURES.nilo;
     const el = document.createElement("div");
