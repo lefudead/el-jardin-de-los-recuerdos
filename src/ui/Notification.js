@@ -66,7 +66,9 @@ eventBus.on(eventBus.constructor.EVENTS.NILO_WARNING, (p) => {
 });
 
 eventBus.on(eventBus.constructor.EVENTS.CREATURE_INTERFERENCE, (p) => {
-  if (p.status === "escaped") {
+  // Nilo robando una FLOR no roba pétalos: se gestiona con su propio toast de
+  // penalización de capacidad máxima (emitido por GardenScene).
+  if (p.status === "escaped" && p.type !== "steal_flowers") {
     notification.show(`🐆 Nilo robó ${p.stolen} pétalos y escapó.`, 2200);
   }
 });

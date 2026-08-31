@@ -21,6 +21,11 @@ export function defaultState() {
       timeOfDay: "day",
       storyProgress: 0
     },
+    penalties: {
+      // reducción de la capacidad máx de flores por robo de Nilo (GDD §40):
+      // { [zoneId]: { reduced, untilMs } } — untilMs = timestamp real de expiración
+      maxFlowers: {}
+    },
     unlocks: {
       flowers: ["daisy", "tulip", "sunflower"],
       maps: ["spring_garden"],
@@ -126,6 +131,7 @@ class GameStateStore {
       version: SAVE_VERSION,
       resources: this.state.resources,
       progression: this.state.progression,
+      penalties: this.state.penalties,
       unlocks: this.state.unlocks,
       creatures: this.state.creatures,
       inventory: this.state.inventory,

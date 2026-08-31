@@ -26,6 +26,7 @@ export function sanitizeSave(raw, defaults) {
       timeOfDay: typeof raw?.progression?.timeOfDay === "string" ? raw.progression.timeOfDay : defaults.progression.timeOfDay,
       storyProgress: isNonNegativeNumber(raw?.progression?.storyProgress) ? raw.progression.storyProgress : defaults.progression.storyProgress
     };
+    out.penalties = sanitizePenalties(raw?.penalties, defaults.penalties);
     out.unlocks = {
       flowers: toArray(raw?.unlocks?.flowers),
       maps: toArray(raw?.unlocks?.maps),
@@ -102,6 +103,26 @@ function toMapStrings(obj) {
   const out = {};
   for (const [k, v] of Object.entries(obj)) {
     if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+/** Sanitiza las penalizaciones de capacidad máx de flores por zona (GDD §40). */
+function sanitizePenalties(pen, defaults) {
+  const out = { maxFlowers: {} };
+  if (!pen || typeof pen !== "object") {
+    return { maxFlowers: defaults?.maxFlowers ? structuredClone(defaults.maxFlowers) : {} };
+  }
+  const raw = pen.maxFlowers;
+  if (raw && typeof raw === "object") {
+    for (const [zoneId, p] of Object.entries(raw)) {
+      if (!p || typeof p !== "object") continue;
+      const reduced = isNonNegativeNumber(p.reduced) ? p.reduced : 0;
+      const untilMs = isNonNegativeNumber(p.untilMs) ? p.untilMs : 0;
+      if (reduced > 0 && untilMs > 0) {
+        out.maxFlowers[zoneId] = { reduced, untilMs };
+      }
+    }
   }
   return out;
 }

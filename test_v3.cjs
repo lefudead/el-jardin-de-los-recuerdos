@@ -54,6 +54,7 @@ async function main() {
   await E(ws, `window.__garden.reset()`);
   const ready = await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   check("la app cargó (API de depuración)", ready === true);
+  await E(ws, `window.__garden.setNiloAutoSpawn(false)`);
   await sl(300);
 
   // Entrar al jardín -> intro cinematográfico (lo omitimos al instante)

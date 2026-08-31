@@ -76,9 +76,12 @@ export class CreatureSystem {
 
   /**
    * Inicia un encuentro de robo para una criatura en una zona.
-   * Devuelve la criatura si se inicia, o null si ya hay uno / no puede interferir.
+   * handlers.onSteal(): función opcional invocada al consumar el robo;
+   * si se proporciona, decide la recompensa/perjuicio (p. ej. Nilo se lleva
+   * una flor y baja la capacidad máxima) y devuelve cuántas unidades robó.
+   * Sin handlers, el comportamiento por defecto roba pétalos (`stealFlowers`).
    */
-  startEncounter(creatureId, zoneId) {
+  startEncounter(creatureId, zoneId, handlers = {}) {
     if (this.active) return null;
     const c = CREATURES[creatureId];
     if (!c) return null;
@@ -94,7 +97,8 @@ export class CreatureSystem {
       windowMs: cfg.windowMs || DEFAULT_WINDOW_MS,
       startedAt: Date.now(),
       timer: null,
-      status: "stealing"
+      status: "stealing",
+      onSteal: handlers.onSteal || null
     };
 
     this._discover(creatureId);
@@ -146,8 +150,16 @@ export class CreatureSystem {
     this._clearTimer();
     ev.status = "escaped";
     const game = gameState;
-    const stolen = Math.min(ev.stealFlowers, game.state.resources.petals);
-    game.state.resources.petals -= stolen;
+
+    // Si el encuentro define un manejador de robo (ej. Nilo se lleva una flor),
+    // devuelve cuántas unidades robó; si no, roba pétalos por defecto.
+    let stolen = Math.min(ev.stealFlowers, game.state.resources.petals);
+    if (typeof ev.onSteal === "function") {
+      stolen = ev.onSteal() || 0;
+    } else {
+      game.state.resources.petals -= stolen;
+    }
+
     eventBus.emit(eventBus.constructor.EVENTS.RESOURCE_CHANGED, {
       petals: game.state.resources.petals,
       bouquets: game.state.resources.bouquets

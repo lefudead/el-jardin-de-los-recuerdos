@@ -18,12 +18,15 @@ import { gameState as gs } from "../systems/GameState.js";
 import { FLOWERS } from "../data/flowers.js";
 import { MAPS } from "../data/maps.js";
 import { CREATURES } from "../data/creatures.js";
+import { CONFIG } from "../config.js";
 import { randomBetween, chance } from "../utils/random.js";
 import { topBar } from "../ui/TopBar.js";
 import { creatureSystem } from "../systems/CreatureSystem.js";
 import { companionSystem } from "../systems/CompanionSystem.js";
 import { narrativeSystem } from "../systems/NarrativeSystem.js";
 import { eventBus } from "../systems/EventBus.js";
+import { dialogBox } from "../ui/DialogBox.js";
+import { saveManager } from "../systems/SaveInstance.js";
 
 const Q = (id) => document.getElementById(id);
 
@@ -35,12 +38,29 @@ export class GardenScene {
     this.niloTimer = null;
     this._disposed = false;
     this._tapCountSinceCheck = 0;
+    this.autoSpawnNilo = true;
+    this._niloSpawnTimer = null;
   }
 
   /** Configura el contenedor y los listeners del área. */
   init(onEachFlowerTap) {
     this.container = Q("garden-area");
     this.onEachFlowerTap = onEachFlowerTap || (() => {});
+    if (this._niloSpawnTimer) {
+      clearInterval(this._niloSpawnTimer);
+      this._niloSpawnTimer = null;
+    }
+    this._niloSpawnTimer = setInterval(() => this._autoSpawnTick(), CONFIG.nilo.spawnIntervalMs || 30000);
+  }
+
+  dispose() {
+    if (this._niloSpawnTimer) {
+      clearInterval(this._niloSpawnTimer);
+      this._niloSpawnTimer = null;
+    }
+    this._disposed = true;
+    this._removeNilo();
+    this.clear();
   }
 
   /** Rellena el jardín con flores de la zona/momento actuales. */
@@ -48,7 +68,7 @@ export class GardenScene {
     this.clear();
     const zone = gs.state.progression.currentZone;
     const time = gs.state.progression.timeOfDay;
-    const capacity = flowerSystem.zoneCapacity(zone);
+    const capacity = flowerSystem.effectiveZoneCapacity(zone);
     const spawned = flowerSystem.spawnFlowers(zone, time, capacity);
 
     for (const s of spawned) {
@@ -117,10 +137,16 @@ export class GardenScene {
     this._tapCountSinceCheck++;
     this._checkNarrativeTaps();
 
+    // spawn rápido de Nilo (0.5%) al recoger una flor
+    this._tryTapSpawn();
+
     this.onEachFlowerTap();
 
     // desactivar y agendar reaparición
     this.hideThenRespawn(entry);
+
+    // si se recogieron todas las flores, regenerarlas inmediatamente
+    this._regenerateImmediatelyIfEmpty();
   }
 
   _checkNarrativeTaps() {
@@ -134,9 +160,6 @@ export class GardenScene {
     // Ruido de Nilo a partir de ciertos taps, si aún no domesticado
     if (gs.state.stats.totalTaps >= 15) {
       narrativeSystem.tryNiloTutorial();
-      if (!narrativeSystem.isDone("nilo_meet")) {
-        this._maybeStartEncounter();
-      }
     }
   }
 
@@ -228,10 +251,82 @@ export class GardenScene {
     this.populate();
   }
 
-  dispose() {
-    this._disposed = true;
-    this._removeNilo();
-    this.clear();
+  /** ¿Puede Nilo aparecer ahora? Guards compartidos. */
+  _canSpawnNilo() {
+    if (this._disposed) return false;
+    if (gs.state.progression.currentZone !== "spring_garden") return false;
+    if (creatureSystem.isTamed("nilo")) return false;
+    if (creatureSystem.hasActiveEncounter()) return false;
+    if (dialogBox.visible) return false;
+    if (!narrativeSystem.isDone("nilo_meet")) return false;
+    return true;
+  }
+
+  /** Tick del temporizador: intenta que Nilo aparezca (con probabilidad). */
+  _autoSpawnTick() {
+    if (!this.autoSpawnNilo) return;
+    if (!this._canSpawnNilo()) return;
+    if (!chance(CONFIG.nilo.spawnChance)) return;
+    this._trySpawnNilo();
+  }
+
+  /** Spawn rápido al recoger una flor (probabilidad menor, 0.5%). */
+  _tryTapSpawn() {
+    if (!this.autoSpawnNilo) return;
+    if (!this._canSpawnNilo()) return;
+    if (!chance(CONFIG.nilo.tapSpawnChance)) return;
+    this._trySpawnNilo();
+  }
+
+  /** Inicia efectivamente el encuentro de Nilo y renderiza su sprite. */
+  _trySpawnNilo() {
+    const started = creatureSystem.startEncounter("nilo", gs.state.progression.currentZone, {
+      onSteal: () => this._niloStealsFlower()
+    });
+    if (started) {
+      this._renderNilo();
+      return true;
+    }
+    return false;
+  }
+
+  /** Maneja el robo de una flor por Nilo: reduce la capacidad máx. 20 min. */
+  _niloStealsFlower() {
+    const zone = gs.state.progression.currentZone;
+    const p = gs.state.penalties.maxFlowers[zone] || { reduced: 0, untilMs: 0 };
+    const untilMs = Date.now() + (CONFIG.nilo.stealPenaltyMs || 20 * 60 * 1000);
+    gs.state.penalties.maxFlowers[zone] = { reduced: p.reduced + 1, untilMs };
+    saveManager.saveGame();
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+      text: "🐆 ¡Nilo se llevó una flor! La generación máxima de flores bajó en 1 (20 min)."
+    });
+    // reequilibrar el campo: eliminar una flor si quedan más de la capacidad efectiva
+    this._trimToEffectiveCapacity();
+    return 0;
+  }
+
+  /** Fuerza reaparición/equilibrio según la capacidad efectiva. */
+  _trimToEffectiveCapacity() {
+    const zone = gs.state.progression.currentZone;
+    const eff = flowerSystem.effectiveZoneCapacity(zone);
+    const active = this.flowers.filter((f) => f.active);
+    while (active.length > eff) {
+      const f = active.pop();
+      this.hideThenRespawn(f);
+    }
+  }
+
+  /** Respawn inmediato si ya no quedan flores activas en el jardín. */
+  _regenerateImmediatelyIfEmpty() {
+    const active = this.flowers.filter((f) => f.active).length;
+    if (active > 0) return;
+    const zone = gs.state.progression.currentZone;
+    const time = gs.state.progression.timeOfDay;
+    const eff = flowerSystem.effectiveZoneCapacity(zone);
+    // re-colocar todas las entradas como activas (regeneración instantánea)
+    for (const f of this.flowers) {
+      this.respawn(f);
+    }
   }
 
   // ================= NARRATIVA =================
@@ -249,26 +344,6 @@ export class GardenScene {
   }
 
   // ================= ENCUENTRO DE NILO =================
-
-  /** Intenta iniciar un encuentro de Nilo si las condiciones se cumplen. */
-  _maybeStartEncounter() {
-    if (this._disposed) return;
-    if (creatureSystem.hasActiveEncounter()) return;
-    if (gs.state.progression.currentZone !== "spring_garden") return;
-    const nilo = CREATURES.nilo;
-    if (creatureSystem.isTamed("nilo")) return;
-    if (gs.state.stats.totalTaps < 15) return;
-    // solo después del primer encuentro narrativo con Nilo
-    if (!narrativeSystem.isDone("nilo_meet")) return;
-
-    // probabilidad moderada de que aparezca ahora
-    if (!chance(0.25)) return;
-
-    const started = creatureSystem.startEncounter("nilo", gs.state.progression.currentZone);
-    if (started) {
-      this._renderNilo();
-    }
-  }
 
   /** Muestra a Nilo (un leopardo) que entra corriendo, salta a las plantas
    *  y, al final, escapa llevándoselas fuera del campo de visión. */

@@ -25,6 +25,20 @@ export class FlowerSystem {
     return { spring_garden: 6, whispering_forest: 8, moon_lake: 8, abandoned_house: 4, memory_garden: 3 }[zoneId] || 6;
   }
 
+  /** ¿Cuántas flores máx. hay penalizadas ahora mismo en la zona (Nilo)? */
+  maxFlowerPenalty(zoneId) {
+    const p = gameState.state?.penalties?.maxFlowers?.[zoneId];
+    if (!p || typeof p.reduced !== "number" || p.reduced <= 0) return 0;
+    if (typeof p.untilMs === "number" && Date.now() >= p.untilMs) return 0;
+    return p.reduced;
+  }
+
+  /** Capacidad efectiva: capacidad base menos la penalización vigente (mín. 1). */
+  effectiveZoneCapacity(zoneId) {
+    const base = this.zoneCapacity(zoneId);
+    return Math.max(1, base - this.maxFlowerPenalty(zoneId));
+  }
+
   /** Aplica la bonificación de rareza de las mejoras compradas en la zona. */
   rarityBoost(zoneId) {
     return upgradeSystem.bonusFor("rarityBoost", zoneId || this.currentZone());

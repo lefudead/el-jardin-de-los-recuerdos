@@ -138,13 +138,19 @@ window.__garden = {
   grantBouquets: (n) => economy.addBouquets(n),
   addPetals: (n) => economy.addPetals(n),
   spawnNilo() {
-    gardenScene._maybeStartEncounter();
+    gardenScene._trySpawnNilo();
   },
   spawnNiloForce() {
     if (!creatureSystem.hasActiveEncounter()) {
-      creatureSystem.startEncounter("nilo", gameState.state.progression.currentZone);
+      creatureSystem.startEncounter("nilo", gameState.state.progression.currentZone, {
+        onSteal: () => gardenScene._niloStealsFlower()
+      });
     }
     gardenScene._renderNilo();
+  },
+  setNiloAutoSpawn(v) {
+    gardenScene.autoSpawnNilo = !!v;
+    return gardenScene.autoSpawnNilo;
   },
   buyCage(creatureId) {
     const cage = cageForCreature(creatureId);

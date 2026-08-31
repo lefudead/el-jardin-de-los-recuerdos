@@ -44,6 +44,7 @@ async function main() {
   await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   await E(ws, `window.__garden.reset()`);
   await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
+  await E(ws, `window.__garden.setNiloAutoSpawn(false)`);
   await sl(300);
   const fresh = await E(ws, `({p: document.getElementById('petal-counter').textContent, b: document.getElementById('bouquet-counter').textContent})`);
   check("partida nueva en ceros", fresh.p === "0" && fresh.b === "0", JSON.stringify(fresh));

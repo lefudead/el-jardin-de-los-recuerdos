@@ -30,5 +30,14 @@ export const CONFIG = {
 
   // Respawning
   respawnMinMs: 8000,
-  respawnMaxMs: 15000
+  respawnMaxMs: 15000,
+
+  // Nilo (GDD §40): aparición y robo de flores
+  nilo: {
+    spawnIntervalMs: 30000,   // intento de aparición cada 30 s
+    spawnChance: 0.30,        // 30% de probabilidad en cada intento
+    tapSpawnChance: 0.005,    // 0.5% al recoger una flor
+    stealPenaltyMs: 20 * 60 * 1000, // una flor menos durante 20 minutos
+    stealFlowers: 1           // cuántas flores se lleva por robo
+  }
 };
