@@ -12,6 +12,7 @@ import { shopScene } from "./scenes/ShopScene.js";
 import { settingsScene } from "./scenes/SettingsScene.js";
 import { saveManager } from "./systems/SaveInstance.js";
 import { flowerSystem } from "./systems/FlowerInstance.js";
+import { autoGenerateSystem } from "./systems/AutoGenerateSystem.js";
 import { companionSystem } from "./systems/CompanionSystem.js";
 import { investigationSystem } from "./systems/InvestigationSystem.js";
 import { playCinematicIntro } from "./ui/CinematicIntro.js";
@@ -119,6 +120,9 @@ async function start() {  await preload();
 
   // Guardado automático
   saveManager.startAutosave(CONFIG.autosaveInterval);
+
+  // Relojes: generación pasiva del recurso de la zona activa
+  autoGenerateSystem.start();
 
   // Guardar al cerrar la pestaña
   window.addEventListener("beforeunload", () => saveManager.saveGame());

@@ -64,7 +64,7 @@ export function sanitizeSave(raw, defaults) {
   return out;
 }
 
-/** Sanitiza las economías por zona: mantiene solo claves conocidas y números válidos. */
+/** Sanitiza las economías por zona: mantiene claves conocidas y números válidos. */
 function sanitizeZoneResources(zones, defaults) {
   const out = {};
   if (!zones || typeof zones !== "object") {
@@ -72,9 +72,12 @@ function sanitizeZoneResources(zones, defaults) {
   }
   for (const [zoneId, res] of Object.entries(zones)) {
     if (!defaults || !(zoneId in defaults)) continue; // descartar zonas desconocidas
-    const currency = Object.keys(defaults[zoneId])[0];
-    const amount = isNonNegativeNumber(res?.[currency]) ? res[currency] : 0;
-    out[zoneId] = { [currency]: amount };
+    out[zoneId] = {};
+    // Conserva las claves conocidas de la zona (puede haber varias: leaves+bundles).
+    for (const currency of Object.keys(defaults[zoneId])) {
+      const amount = isNonNegativeNumber(res?.[currency]) ? res[currency] : 0;
+      out[zoneId][currency] = amount;
+    }
   }
   return out;
 }

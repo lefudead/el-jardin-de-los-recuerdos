@@ -71,3 +71,26 @@ export const ZONES = {
 export const DEFAULT_SCOPE = "local";
 export const GLOBAL_SCOPE = "global";
 export const CROSS_SCOPE = "cross";
+
+/**
+ * Conversión de la moneda menor de cada zona a su forma "fuerte".
+ * En el bosque: cada 10 hojas → 1 bulto de hojas (🍂).
+ * `minor` debe coincidir con la moneda suelta; `major` es la forma mayor
+ * que cobra la tienda de la zona. `zoneCurrencies` registra ambas claves
+ * para sembrarlas desde 0 en el estado.
+ */
+export const ZONE_CONVERSIONS = {
+  whispering_forest: { minor: "leaves", major: "bundles", rate: 10 }
+};
+
+/** Todas las claves de moneda que se siembran por zona (incluye mayor+menor). */
+export const ZONE_CURRENCIES = {
+  spring_garden: { petals: 0, bouquets: 0 },
+  whispering_forest: { leaves: 0, bundles: 0 },
+  moon_lake: { moonlight: 0 },
+  abandoned_house: { dust: 0 },
+  memory_garden: { memories: 0 },
+  forraje_del_rio: { river_pebbles: 0 },
+  clima_variable: { weather_drops: 0 },
+  base_de_la_colina: { hill_stones: 0 }
+};

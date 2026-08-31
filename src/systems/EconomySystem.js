@@ -10,6 +10,7 @@
 import { gameState } from "./GameState.js";
 import { eventBus } from "./EventBus.js";
 import { CONFIG } from "../config.js";
+import { ZONES, ZONE_CONVERSIONS } from "../data/zones.js";
 
 export class EconomySystem {
   constructor() {
@@ -60,7 +61,36 @@ export class EconomySystem {
       gameState.state.stats.totalPetals += amount;
       eventBus.emit(eventBus.constructor.EVENTS.PETAL_GAINED, { amount });
     }
+    // Conversión automática de moneda de zona (ej: 10 hojas → 1 bulto de hojas).
+    const zoneConv = this._zoneConversionFor(type);
+    if (zoneConv) this._convertZone(type, zoneConv);
     eventBus.emit(eventBus.constructor.EVENTS.RESOURCE_CHANGED, this.snapshot());
+  }
+
+  /** Si `type` (ej: "whispering_forest.leaves") tiene conversión definida, la devuelve. */
+  _zoneConversionFor(type) {
+    const r = this._resolve(type);
+    if (!r.zone) return null;
+    const zone = ZONES[r.zoneId];
+    if (!zone) return null;
+    // La moneda menor de la zona se convierte a un recurso mayor con el mismo nombre
+    // pero en plural ("leaves" → "bundles"): cada `rate` unidades menores = 1 mayor.
+    const conv = zone.conversion || ZONE_CONVERSIONS[r.zoneId];
+    if (!conv || conv.minor !== r.currency) return null;
+    return { zoneId: r.zoneId, major: conv.major, rate: conv.rate };
+  }
+
+  /** Convierte hojas sueltas en bultos de hojas, conservando excedentes. */
+  _convertZone(type, conv) {
+    const minor = this.getResource(type);
+    const rate = conv.rate;
+    const bundles = Math.floor(minor / rate);
+    if (bundles <= 0) return 0;
+    const remainder = minor % rate;
+    this._setResource(type, remainder);
+    this._setResource(`${conv.zoneId}.${conv.major}`, this.getResource(`${conv.zoneId}.${conv.major}`) + bundles);
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: `🍂 ¡${bundles} bulto${bundles > 1 ? "s" : ""} de hojas!` });
+    return bundles;
   }
 
   /** Resta una cantidad; devuelve false si no hay suficiente. */

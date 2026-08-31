@@ -3,7 +3,7 @@
  * Toda la información persistente pertenece aquí. No se duplica en escenas.
  */
 import { sanitizeSave } from "../utils/validation.js";
-import { ZONES } from "../data/zones.js";
+import { ZONES, ZONE_CURRENCIES } from "../data/zones.js";
 
 export const SAVE_VERSION = 2;
 
@@ -97,11 +97,16 @@ export function defaultState() {
   };
 }
 
-/** Semilla cada moneda de zona con 0 (Actualización 3.1). */
+/** Semilla todas las monedas de cada zona con 0 (Actualización 3.1). */
 function defaultZoneResources() {
   const zones = {};
+  for (const [zoneId, currencies] of Object.entries(ZONE_CURRENCIES)) {
+    zones[zoneId] = { ...currencies };
+  }
+  // Compatibilidad: si una zona existe pero no está en ZONE_CURRENCIES, usa su moneda.
   for (const z of Object.values(ZONES)) {
-    zones[z.id] = { [z.currency]: 0 };
+    if (!zones[z.id]) zones[z.id] = { [z.currency]: 0 };
+    else if (!(z.currency in zones[z.id])) zones[z.id][z.currency] = 0;
   }
   return zones;
 }
