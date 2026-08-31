@@ -148,6 +148,28 @@ export const STORY = {
     progress: 60,
     oneShot: true,
     memory: "memory_nilo_ribbon"
+  },
+
+  // ---- EL BOSQUE SUSURRANTE (GDD §58-60, §7) ----
+  forest_entry: {
+    id: "forest_entry",
+    chapter: 4,
+    text: "El bosque crece donde hace años no había nada. Los árboles parecen recordar tu nombre. En el aire crepitan hojas que brillan como añicos de cristal.",
+    speaker: "Narradora",
+    requirements: [],
+    next: "forest_tutorial",
+    progress: 62,
+    oneShot: true
+  },
+  forest_tutorial: {
+    id: "forest_tutorial",
+    chapter: 4,
+    text: "Aquí las flores no dan ramos: guardan hojas de luz 🍃. Recolecta las campanillas azules y las rosas para juntar hojas propias del bosque.",
+    speaker: "Narradora",
+    requirements: [],
+    next: null,
+    progress: 62,
+    oneShot: true
   }
 };
 

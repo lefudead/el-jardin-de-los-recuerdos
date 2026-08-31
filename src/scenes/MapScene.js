@@ -8,6 +8,7 @@ import { rewardSystem } from "../systems/RewardSystem.js";
 import { saveManager } from "../systems/SaveInstance.js";
 import { eventBus } from "../systems/EventBus.js";
 import { audio } from "../systems/AudioSystem.js";
+import { narrativeSystem } from "../systems/NarrativeSystem.js";
 
 const Q = (id) => document.getElementById(id);
 
@@ -77,6 +78,10 @@ export class MapScene {
     gameState.state.progression.currentZone = mapId;
     saveManager.saveGame();
     eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: `🌿 Has llegado a ${MAPS[mapId].name}.` });
+    // Narrativa de entrada del bosque: la primera vez que se viaja allí.
+    setTimeout(() => {
+      if (mapId === "whispering_forest") narrativeSystem.playNode("forest_entry");
+    }, 350);
   }
 }
 

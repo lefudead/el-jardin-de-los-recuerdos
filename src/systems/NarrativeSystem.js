@@ -112,6 +112,7 @@ export class NarrativeSystem {
   _emojiFor(node) {
     if (!node) return "";
     if (node.id?.startsWith("nilo")) return "🐆";
+    if (node.id?.startsWith("forest")) return "🌲";
     if (node.id?.startsWith("intro")) return "🏠";
     return "📖";
   }

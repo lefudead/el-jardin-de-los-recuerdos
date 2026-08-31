@@ -17,8 +17,18 @@ export class CompanionPanel {
     this.countEl = Q("companion-count");
     this.listEl = Q("companion-list");
 
-    if (this.toggleBtn) this.toggleBtn.addEventListener("click", () => this.open());
+    if (this.toggleBtn) this.toggleBtn.addEventListener("click", () => this.toggle());
     if (this.closeBtn) this.closeBtn.addEventListener("click", () => this.close());
+
+    // Cerrar al hacer clic fuera del panel o con Escape.
+    document.addEventListener("pointerdown", (e) => {
+      if (this.panel.hidden) return;
+      if (this.panel.contains(e.target) || e.target === this.toggleBtn) return;
+      this.close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") this.close();
+    });
 
     eventBus.on(eventBus.constructor.EVENTS.CREATURE_TAMED, () => this.refresh());
     eventBus.on(eventBus.constructor.EVENTS.CREATURE_HELPED, () => this.refresh());
@@ -29,6 +39,15 @@ export class CompanionPanel {
 
   get hasCompanions() {
     return companionSystem.getCompanions().length > 0;
+  }
+
+  get isOpen() {
+    return !!this.panel && !this.panel.hidden;
+  }
+
+  toggle() {
+    if (this.isOpen) this.close();
+    else this.open();
   }
 
   open() {

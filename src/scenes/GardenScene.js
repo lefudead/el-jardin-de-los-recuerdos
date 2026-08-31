@@ -10,7 +10,7 @@
  *  - dispara nodos narrativos (intro, anomalía, tutorial de Nilo)
  */
 import { flowerSystem } from "../systems/FlowerInstance.js";
-import { farming } from "../systems/FarmingSystem.js";
+import { farming, rewardCurrencyForZone } from "../systems/FarmingSystem.js";
 import { audio } from "../systems/AudioSystem.js";
 import { secretSystem } from "../systems/SecretSystem.js";
 import { dayNight } from "../systems/DayNightSystem.js";
@@ -94,6 +94,9 @@ export class GardenScene {
     const label = document.createElement("div");
     label.className = "flower-label";
     label.textContent = `${data.name} +${data.petalValue}`;
+    if (rewardCurrencyForZone(data.zone)) {
+      label.textContent = `${data.name} +${data.petalValue} 🍃`;
+    }
     el.appendChild(label);
 
     el.addEventListener("pointerdown", (e) => {
@@ -230,7 +233,7 @@ export class GardenScene {
   applyZoneVisual() {
     const zone = gs.state.progression.currentZone;
     const map = MAPS[zone];
-    topBar.setZone(map ? map.name : zone);
+    topBar.setZone(map ? map.name : zone, zone);
     dayNight.applyBodyClass();
     if (this.container) {
       topBar.setTime(gs.state.progression.timeOfDay);
