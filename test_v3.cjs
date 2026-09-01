@@ -130,7 +130,9 @@ async function main() {
   // Tras capturarlo, Nilo ya NO debe aparecer (solo deja de aparecer al capturarlo).
   await E(ws, `window.__garden.spawnNiloForce()`); await sl(200);
   const niloAfterCapture = await E(ws, `document.querySelector('.nilo') === null`);
-  check("tras capturar, Nilo no vuelve a interferir", niloAfterCapture === true);
+  // Double-check: si aún hay un sprite (fuga en curso), espera a que se limpie.
+  const niloStillAbsent = niloAfterCapture || (await waitFor(ws, `document.querySelector('.nilo') === null`, 4000, 250)) === true;
+  check("tras capturar, Nilo no vuelve a interferir", niloStillAbsent === true);
 
   // Comprar alimento (varias raciones) y domesticar (10 taps dentro del tiempo)
   const foodRes = await E(ws, `(() => { let last="nope"; for(let i=0;i<6;i++){ last = window.__garden.buyFood('nilo'); } return last; })()`);

@@ -445,22 +445,31 @@ export class GardenScene {
   }
 
   /** Loop de requestAnimationFrame: mueve las flores activas y las rebota en
-   *  los bordes usando --dx/--dy (offset en px sobre la posición base en %). */
+   *  los bordes usando --dx/--dy (offset en px sobre la posición base en %).
+   *  El rebote se calcula sobre la posición REAL (base % + offset) y deja un
+   *  margen del tamaño de la flor para que nunca se asome fuera del cuadro. */
   _flowerLoop() {
     if (!this.container) return;
     const area = this.container.getBoundingClientRect();
     const maxW = area.width;
     const maxH = area.height;
+    // Margen = media flor aprox. Si no se conoce el tamaño exacto, 26px cubre
+    // un emoji de hasta ~52px (el tamaño por defecto de las flores).
+    const margin = 26;
     let any = false;
     for (const f of this.flowers) {
       if (!f.active || !f.el || !f.motion) continue;
       const m = f.motion;
+      const leftPct = parseFloat(f.el.style.left) || 50;
+      const topPct = parseFloat(f.el.style.top) || 50;
       m.x += m.vx;
       m.y += m.vy;
-      if (m.x <= 0) { m.x = 0; m.vx = Math.abs(m.vx); }
-      else if (m.x >= maxW) { m.x = maxW; m.vx = -Math.abs(m.vx); }
-      if (m.y <= 0) { m.y = 0; m.vy = Math.abs(m.vy); }
-      else if (m.y >= maxH) { m.y = maxH; m.vy = -Math.abs(m.vy); }
+      let px = (leftPct / 100) * maxW + m.x;
+      let py = (topPct / 100) * maxH + m.y;
+      if (px < margin) { m.x = margin - (leftPct / 100) * maxW; m.vx = Math.abs(m.vx); }
+      else if (px > maxW - margin) { m.x = maxW - margin - (leftPct / 100) * maxW; m.vx = -Math.abs(m.vx); }
+      if (py < margin) { m.y = margin - (topPct / 100) * maxH; m.vy = Math.abs(m.vy); }
+      else if (py > maxH - margin) { m.y = maxH - margin - (topPct / 100) * maxH; m.vy = -Math.abs(m.vy); }
       f.el.style.setProperty("--dx", m.x + "px");
       f.el.style.setProperty("--dy", m.y + "px");
       any = true;
