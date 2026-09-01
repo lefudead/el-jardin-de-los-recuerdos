@@ -21,10 +21,9 @@ function extractVideoId(url) {
 function extractPlaylistId(url) {
   const m = String(url).match(/[?&#]list=([A-Za-z0-9_-]+)/);
   if (!m) return null;
-  const id = m[1];
-  // Prefijos típicos de id de lista de reproducción (PL, RD, OLAK, UU, LL...).
-  if (/^(PL|RD|OLAK5uy_|UU|LL|FL|PU)/.test(id)) return id;
-  return null;
+  // Los ids de lista de reproducción miden ≥ 8 caracteres (PL, RD, OLAK5uy_,
+  // UU, LL, FL, PU, etc.). Sin exigir prefijo para no descartar ids válidos.
+  return m[1].length >= 8 ? m[1] : null;
 }
 
 function parseUrl(url) {
@@ -34,6 +33,8 @@ function parseUrl(url) {
   if (video) return { type: "video", id: video };
   return null;
 }
+
+export { parseUrl };
 
 class YoutubeMusicSystem {
   constructor() {
@@ -119,6 +120,9 @@ class YoutubeMusicSystem {
       this.setStatus("Ese enlace no parece de YouTube.");
       return { ok: false, reason: "bad_url" };
     }
+    // La música propia sustituye a la del juego: cortamos las pistas del juego
+    // (también al reactivar, que disable() había reanudado).
+    audio.stopMusic();
     gameState.settings.externalMusic.url = url;
     gameState.settings.externalMusic.enabled = true;
     // Espera al reproductor listo (máx 8 s) para evitar cargar antes de tiempo.
@@ -135,12 +139,12 @@ class YoutubeMusicSystem {
         // Un único video en bucle: se carga como playlist de 1 elemento.
         this.player.loadPlaylist({ list: [parsed.id], index: 0 });
       } else {
-        this.player.loadPlaylist({ list: parsed.id, listType: "playlist" });
+        this.player.loadPlaylist({ listType: "playlist", list: parsed.id, index: 0 });
       }
       setTimeout(() => {
         try { this.player.setLoop(true); } catch (err) { /* noop */ }
         try { this.player.playVideo(); } catch (err) { /* noop */ }
-      }, 500);
+      }, 700);
       this.setStatus(parsed.type === "video"
         ? "Tu video sonando en bucle 🔊"
         : "Tu playlist sonando en bucle 🔊");
