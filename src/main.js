@@ -141,9 +141,12 @@ window.__gardenDebugActive = CONFIG.debug;
 window.__garden = {
   get state() { return gameState.state; },
   gardenScene,
+  mapScene,
   creatureSystem,
   investigation: investigationSystem,
   economy,
+  audio,
+  audioDebug: () => ({ track: audio.currentTrack, melody: !!audio.currentMelody, ctx: audio.ctx ? audio.ctx.state : null, elSrc: audio.musicElement ? audio.musicElement.src : null, elPaused: audio.musicElement ? audio.musicElement.paused : null, sourceConnected: !!audio.musicSource }),
   grantBouquets: (n) => economy.addBouquets(n),
   addPetals: (n) => economy.addPetals(n),
   // Debug amistad: consultar y forzar (tests)

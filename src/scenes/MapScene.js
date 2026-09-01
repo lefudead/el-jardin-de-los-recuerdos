@@ -212,6 +212,8 @@ export class MapScene {
     if (!gameState.state.unlocks.maps.includes(mapId)) return;
     gameState.state.progression.currentZone = mapId;
     saveManager.saveGame();
+    // La música refleja la zona a la que viajamos (jardín/bosque) de inmediato.
+    audio.playZoneMusic(mapId);
     eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: `🌿 Has llegado a ${MAPS[mapId].name}.` });
     // Narrativa de entrada del bosque: la primera vez que se viaja allí.
     setTimeout(() => {

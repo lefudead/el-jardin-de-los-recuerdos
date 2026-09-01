@@ -167,6 +167,11 @@ class AudioSystem {
       el.volume = gameState.settings.musicVolume ?? 1;
     }
     this.currentTrack = src;
+    // Si el AudioContext está suspendido (p. ej. tras volver a la pestaña), lo
+    // reanudamos antes de reproducir para que el MP3 no quede pausado en silencio.
+    if (this.ctx && this.ctx.state === "suspended") {
+      try { this.ctx.resume(); } catch (e) { /* noop */ }
+    }
     el.play().catch(() => {});
   }
 
