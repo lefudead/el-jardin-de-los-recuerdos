@@ -56,6 +56,7 @@ function showScreen(name) {
   if (name === "map") mapScene.render();
   if (name === "journal") openJournal();
   if (name === "shop") shopScene.render();
+  if (name === "settings") settingsScene.render();
 
   if (name === "garden") {
     gardenScene.refresh();
@@ -180,6 +181,10 @@ window.__garden = {
     disable: () => youtubeMusic.disable(),
     loadByUrl: (url) => youtubeMusic.loadUrl(url),
     parse: (url) => parseUrl(url),
+    saved: () => youtubeMusic.listSaved(),
+    saveTrack: (url, title) => youtubeMusic.saveTrack(url, title),
+    removeTrack: (url) => youtubeMusic.removeTrack(url),
+    setVolume: (v) => youtubeMusic.setVolume(v),
     playerState: () => {
       const p = youtubeMusic.player;
       if (!p) return null;

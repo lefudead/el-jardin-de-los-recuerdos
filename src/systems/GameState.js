@@ -122,8 +122,14 @@ class GameStateStore {
       musicVolume: 0.4,
       sfxVolume: 1,
       vibration: true,
-      // Música propia del jugador (YouTube): enlace + si está activa.
-      externalMusic: { enabled: false, url: "" }
+      // Música propia del jugador (YouTube): enlace, si está activa, volumen
+      // y la lista de canciones que el usuario ha guardado (las que sí suenan).
+      externalMusic: {
+        enabled: false,
+        url: "",
+        volume: 100,
+        savedTracks: []
+      }
     };
   }
 

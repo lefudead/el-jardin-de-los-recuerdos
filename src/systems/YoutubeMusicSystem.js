@@ -113,6 +113,8 @@ class YoutubeMusicSystem {
           const ifr = Q("external-music-player")?.querySelector("iframe");
           if (ifr) ifr.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
           try { this.player.setLoop(true); } catch (err) { /* noop */ }
+          this._applyActiveVolume();
+          this._captureTitle();
           const turnOnSound = () => {
             try { if (typeof this.player.unMute === "function") this.player.unMute(); } catch (err) { /* noop */ }
             try { this.player.playVideo(); } catch (err) { /* noop */ }
@@ -136,6 +138,7 @@ class YoutubeMusicSystem {
           } catch (err) { /* noop */ }
         },
         onStateChange: (e) => {
+          this._captureTitle();
           if (e.data === YT.PlayerState.ENDED) {
             try { this.player.playVideo(); } catch (err) { /* noop */ }
           }
@@ -216,6 +219,87 @@ class YoutubeMusicSystem {
 
   isActive() {
     return !!gameState.settings.externalMusic?.enabled;
+  }
+
+  /** Lista de canciones guardadas por el jugador (las que sí suenan). */
+  listSaved() {
+    const s = gameState.settings.externalMusic;
+    if (!Array.isArray(s.savedTracks)) s.savedTracks = [];
+    return s.savedTracks;
+  }
+
+  /** Guarda el enlace actual en "Mis canciones" (si no está ya). */
+  saveTrack(url, title = "") {
+    const u = String(url || "").trim();
+    if (!parseUrl(u)) return { ok: false, reason: "bad_url" };
+    const s = gameState.settings.externalMusic;
+    if (!Array.isArray(s.savedTracks)) s.savedTracks = [];
+    let track = s.savedTracks.find((t) => t.url === u);
+    if (track) {
+      if (title && !track.title) track.title = title;
+    } else {
+      track = { url: u, title: title || "", volume: 100, addedAt: Date.now() };
+      s.savedTracks.push(track);
+    }
+    saveManager.saveGame();
+    return { ok: true };
+  }
+
+  /** Quita una canción de la lista guardada. */
+  removeTrack(url) {
+    const s = gameState.settings.externalMusic;
+    if (Array.isArray(s.savedTracks)) {
+      s.savedTracks = s.savedTracks.filter((t) => t.url !== url);
+    }
+    saveManager.saveGame();
+    this.setStatus("");
+  }
+
+  /** Aplica el volumen del player (0-100) y lo recuerda para esa canción. */
+  setVolume(v) {
+    const value = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+    const s = gameState.settings.externalMusic;
+    s.volume = value;
+    const activeUrl = typeof s.url === "string" ? s.url : "";
+    const track = Array.isArray(s.savedTracks) ? s.savedTracks.find((t) => t.url === activeUrl) : null;
+    if (track) track.volume = value;
+    try { if (this.player && typeof this.player.setVolume === "function") this.player.setVolume(value); } catch (err) { /* noop */ }
+    saveManager.saveGame();
+    return value;
+  }
+
+  /** Volumen con el que debe sonar el enlace `url` (el de la canción o el global). */
+  _volumeFor(url) {
+    const s = gameState.settings.externalMusic;
+    if (Array.isArray(s.savedTracks)) {
+      const track = s.savedTracks.find((t) => t.url === url);
+      if (track && typeof track.volume === "number") return track.volume;
+    }
+    return typeof s.volume === "number" ? s.volume : 100;
+  }
+
+  _applyActiveVolume() {
+    const s = gameState.settings.externalMusic;
+    const v = this._volumeFor(typeof s.url === "string" ? s.url : "");
+    try { if (this.player && typeof this.player.setVolume === "function") this.player.setVolume(v); } catch (err) { /* noop */ }
+  }
+
+  /** Guarda en el track activo el título que el player va obteniendo (si lo hay). */
+  _captureTitle() {
+    try {
+      if (this.player && typeof this.player.getVideoData === "function") {
+        const t = this.player.getVideoData();
+        if (t && t.title) this._titleCache = t.title;
+      }
+    } catch (err) { /* noop */ }
+    const s = gameState.settings.externalMusic;
+    if (typeof s.url === "string" && Array.isArray(s.savedTracks)) {
+      const track = s.savedTracks.find((t) => t.url === s.url);
+      if (track && !track.title && this._titleCache) {
+        track.title = this._titleCache;
+        saveManager.saveGame();
+      }
+    }
   }
 
   setStatus(text) {

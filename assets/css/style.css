@@ -355,6 +355,21 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
 .settings-actions { display: flex; gap: 8px; margin-bottom: 10px; }
 .settings-actions .btn { flex: 1; font-size: 13px; padding: 10px 8px; }
 .settings-status { font-size: 12px; color: var(--accent-soft); min-height: 16px; margin: 4px 0 10px; }
+.saved-music-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.saved-track {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.saved-track.is-active { border-color: var(--accent); background: rgba(255, 255, 255, 0.1); }
+.saved-track-title { font-size: 12px; line-height: 1.35; word-break: break-all; }
+.saved-track-actions { display: flex; align-items: center; gap: 8px; }
+.saved-track-actions input[type="range"] { width: auto; flex: 1; min-width: 60px; }
+.btn-mini { padding: 4px 8px; font-size: 12px; line-height: 1; }
 .external-music-host {
   position: absolute;
   width: 1px;
