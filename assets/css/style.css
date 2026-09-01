@@ -398,6 +398,23 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
 
 .flower.faded { opacity: 0.25; filter: grayscale(0.8); pointer-events: none; }
 
+/* Planta enterrada por el topo: invisible e intocable hasta asustarlo. */
+.flower.buried {
+  opacity: 0.06;
+  filter: grayscale(0.9) brightness(0.7);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Hongo rarísimo: destella para que se note entre las hojas. */
+.flower.mushroom-raro {
+  animation: mushroomGlow 1.2s ease-in-out infinite alternate;
+}
+@keyframes mushroomGlow {
+  from { filter: drop-shadow(0 0 2px #fff); }
+  to { filter: drop-shadow(0 0 12px #b6ff3c); }
+}
+
 .flower-label {
   position: absolute;
   left: 50%;
@@ -652,6 +669,34 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
   animation: niloAlert 0.6s infinite alternate;
 }
 @keyframes niloAlert { from { opacity: 0.7; } to { opacity: 1; } }
+
+/* ===== Topo del bosque (Moss) ===== */
+.moss {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 46px;
+  will-change: left, top, transform;
+  z-index: 15;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+  animation: mossBob 0.5s infinite alternate ease-in-out;
+}
+.moss.hit { transform: translate(-50%, -50%) scale(1.3) !important; filter: brightness(1.5); }
+@keyframes mossBob { from { margin-top: 0; } to { margin-top: -8px; } }
+.moss-label {
+  position: absolute;
+  left: 50%;
+  top: -22px;
+  transform: translateX(-50%);
+  background: #7e5109;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  animation: niloAlert 0.6s infinite alternate;
+}
 
 /* ===== Intro cinematográfico ===== */
 .cinematic-intro {

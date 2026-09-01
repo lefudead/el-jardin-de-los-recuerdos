@@ -19,6 +19,7 @@ export function sanitizeSave(raw, defaults) {
     out.resources = {
       petals: isNonNegativeNumber(raw?.resources?.petals) ? raw.resources.petals : defaults.resources.petals,
       bouquets: isNonNegativeNumber(raw?.resources?.bouquets) ? raw.resources.bouquets : defaults.resources.bouquets,
+      mushrooms: isNonNegativeNumber(raw?.resources?.mushrooms) ? raw.resources.mushrooms : defaults.resources.mushrooms,
       zones: sanitizeZoneResources(raw?.resources?.zones, defaults.resources.zones)
     };
     out.progression = {

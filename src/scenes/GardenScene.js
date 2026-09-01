@@ -27,6 +27,8 @@ import { narrativeSystem } from "../systems/NarrativeSystem.js";
 import { eventBus } from "../systems/EventBus.js";
 import { dialogBox } from "../ui/DialogBox.js";
 import { saveManager } from "../systems/SaveInstance.js";
+import { economy } from "../systems/EconomyInstance.js";
+import { investigationSystem } from "../systems/InvestigationSystem.js";
 
 const Q = (id) => document.getElementById(id);
 
@@ -42,6 +44,11 @@ export class GardenScene {
     this._niloSpawnTimer = null;
     this._niloTutorialPending = false;
     this._niloTutorialProbe = null;
+    // Topo del bosque (Moss)
+    this.mossEl = null;
+    this.mossState = null;
+    this._mossRevealTimer = null;
+    this._mossMoveTimer = null;
   }
 
   /** Configura el contenedor y los listeners del área. */
@@ -70,6 +77,7 @@ export class GardenScene {
     this._niloTutorialPending = false;
     this._disposed = true;
     this._removeNilo();
+    this._removeMoss();
     this.clear();
   }
 
@@ -130,6 +138,20 @@ export class GardenScene {
     // partícula de pétalo
     this.spawnPetal(el);
 
+    // El hongo rarísimo se recoge y se va (no respawnea, persiste hasta recogerlo).
+    if (entry.flower?.id === "mushroom" && entry.flower?.special?.type === "rare_dropped") {
+      economy.addResource("mushrooms", 1);
+      eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+        text: "🍄 ¡Recogiste un Hongo Raro! Se guarda para hacer pociones."
+      });
+      entry.active = false;
+      if (entry.el && entry.el.parentNode) entry.el.remove();
+      this.flowers = this.flowers.filter((f) => f !== entry);
+      audio.playPetal();
+      this._regenerateImmediatelyIfEmpty();
+      return;
+    }
+
     // recompensa vía FarmingSystem
     const result = farming.tapFlower(flowerId);
 
@@ -142,6 +164,9 @@ export class GardenScene {
         audio.playBouquet();
       }
     }
+
+    // Al recolectar una hoja del bosque, puede asomar un hongo rarísimo (1/1000).
+    this._trySpawnRareMushroom(flowerId);
 
     // secretos por secuencia de taps
     secretSystem.onFlowerTap(flowerId);
@@ -160,6 +185,48 @@ export class GardenScene {
 
     // si se recogieron todas las flores, regenerarlas inmediatamente
     this._regenerateImmediatelyIfEmpty();
+  }
+
+  /** 1/1000 al recolectar una hoja del bosque: asoma un hongo que persiste. */
+  _trySpawnRareMushroom(flowerId) {
+    const flower = FLOWERS[flowerId];
+    if (!flower) return;
+    if (gs.state.progression.currentZone !== "whispering_forest") return;
+    if (this.flowers.some((f) => f.flower?.id === "mushroom")) return;
+    const special = flower.special;
+    // Solo las hojas/vegetación del bosque cuentan como "hoja recogida".
+    const isLeaf = flowerId.startsWith("forest_") && flower.zone === "whispering_forest";
+    const chanceVal = typeof special?.chance === "number" ? special.chance : 0.001;
+    if (isLeaf && chance(chanceVal)) {
+      this._spawnRareMushroom();
+    }
+  }
+
+  /** Coloca un hongo raro en el campo, persistente hasta recogerlo. */
+  _spawnRareMushroom() {
+    if (!this.container) return;
+    if (this.flowers.length >= 60) return;
+    const m = FLOWERS.mushroom;
+    const el = document.createElement("div");
+    el.className = "flower mushroom-raro";
+    el.textContent = m.emoji;
+    el.style.left = randomBetween(15, 85) + "%";
+    el.style.top = randomBetween(18, 70) + "%";
+    const label = document.createElement("div");
+    label.className = "flower-label";
+    label.textContent = `${m.name} +${m.petalValue} 🍄`;
+    el.appendChild(label);
+    el.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.onFlowerTap(m.id, el);
+    });
+    this.container.appendChild(el);
+    // Sin timer: el hongo persiste hasta que se recoge.
+    this.flowers.push({ el, flower: m, timer: null, active: true, persist: true });
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+      text: "🍄 ¡Apareció un Hongo Raro entre las hojas! Recógelo."
+    });
+    saveManager.saveGame();
   }
 
   _checkNarrativeTaps() {
@@ -297,6 +364,7 @@ export class GardenScene {
     this.flowers.forEach((f) => clearTimeout(f.timer));
     this.flowers = [];
     this._removeNilo();
+    this._removeMoss();
   }
 
   /** Se llama cuando el jugador cambia de zona o de día/noche. */
@@ -321,17 +389,32 @@ export class GardenScene {
     return true;
   }
 
-  /** Tick del temporizador: intenta que Nilo aparezca (con probabilidad). */
+  /** Tick del temporizador: intenta que la criatura de la zona aparezca (con probabilidad). */
   _autoSpawnTick() {
     if (!this.autoSpawnNilo) return;
+    // En el bosque aparece el topo (Moss); en el jardín, Nilo.
+    if (gs.state.progression.currentZone === "whispering_forest") {
+      if (this.mossState) return;
+      if (!this._canSpawnMoss()) return;
+      if (!chance(CONFIG.moss.spawnChance)) return;
+      this._spawnMoss();
+      return;
+    }
     if (!this._canSpawnNilo()) return;
     if (!chance(CONFIG.nilo.spawnChance)) return;
     this._trySpawnNilo();
   }
 
-  /** Spawn rápido al recoger una flor (probabilidad menor, 0.5%). */
+  /** Spawn rápido al recoger una flor (probabilidad menor). */
   _tryTapSpawn() {
     if (!this.autoSpawnNilo) return;
+    if (gs.state.progression.currentZone === "whispering_forest") {
+      if (this.mossState) return;
+      if (!this._canSpawnMoss()) return;
+      if (!chance(CONFIG.moss.tapSpawnChance)) return;
+      this._spawnMoss();
+      return;
+    }
     if (!this._canSpawnNilo()) return;
     if (!chance(CONFIG.nilo.tapSpawnChance)) return;
     this._trySpawnNilo();
@@ -409,6 +492,172 @@ export class GardenScene {
     // re-colocar todas las entradas como activas (regeneración instantánea)
     for (const f of this.flowers) {
       this.respawn(f);
+    }
+  }
+
+  // ================= TOPO DEL BOSQUE (MOSS) =================
+
+  /** ¿Puede el topo aparecer ahora? Guards compartidos. */
+  _canSpawnMoss() {
+    if (this._disposed) return false;
+    if (gs.state.progression.currentZone !== "whispering_forest") return false;
+    if (creatureSystem.isCaptured("moss")) return false;
+    if (this.mossState) return false;
+    if (dialogBox.root && dialogBox.root.classList.contains("show")) return false;
+    return true;
+  }
+
+  /** Inicia el evento del topo: entierra las plantas y lo muestra. */
+  _spawnMoss() {
+    if (!this.container) return;
+    this.mossState = { taps: 0, endTimer: null };
+    this._buryAllPlants(true);
+    this._renderMoss();
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+      text: "🦔 ¡Un topo está enterrando las plantas! Tócalo para asustarlo."
+    });
+    const cfg = CONFIG.moss;
+    this.mossState.endTimer = setTimeout(() => this._endMoss(), cfg.eventMs);
+    saveManager.saveGame();
+  }
+
+  /** Renderiza el sprite del topo que huye entre los huecos. */
+  _renderMoss() {
+    if (!this.container) return;
+    if (this.mossEl) return;
+    const el = document.createElement("div");
+    el.className = "moss";
+    el.textContent = "🦔";
+
+    const label = document.createElement("div");
+    label.className = "moss-label";
+    label.textContent = "¡ENTERRANDO!";
+    el.appendChild(label);
+
+    el.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this._onMossTap();
+    });
+
+    el.style.left = randomBetween(20, 80) + "%";
+    el.style.top = randomBetween(25, 65) + "%";
+    this.container.appendChild(el);
+    this.mossEl = el;
+
+    // Moss huye por los huecos cada 2.5 s.
+    clearInterval(this._mossMoveTimer);
+    this._mossMoveTimer = setInterval(() => this._mossHop(), 2500);
+  }
+
+  /** Salta de un hueco a otro (el topo siempre está en movimiento). */
+  _mossHop() {
+    const el = this.mossEl;
+    if (!el || !el.parentNode) return;
+    if (!this.mossState) return;
+    el.style.transition = "left 0.5s ease-in, top 0.5s ease-in";
+    el.style.left = randomBetween(18, 82) + "%";
+    el.style.top = randomBetween(22, 68) + "%";
+  }
+
+  /** Al tocarlo: investigación, botín, flores visibles 2 s y el topo cambia de hueco. */
+  _onMossTap() {
+    if (!this.mossState || !this.mossEl) return;
+    const el = this.mossEl;
+    el.classList.add("hit");
+    setTimeout(() => el.classList.remove("hit"), 120);
+
+    const cfg = CONFIG.moss;
+    investigationSystem.addResearch("moss", cfg.researchPerTap);
+    const pct = investigationSystem.getProgress("moss");
+
+    const friendship = gs.state.creatures.friendship?.moss || 0;
+    const doubled = friendship >= (cfg.dropDoubleFriendship || 200);
+    this._mossDrop(doubled);
+
+    this._revealPlantsFor(cfg.visibleAfterTouchMs);
+    this._mossHop();
+
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+      text: `🦔 ¡Lo asustaste! +${cfg.researchPerTap}% investigación (total ${pct}%).`
+    });
+    saveManager.saveGame();
+  }
+
+  /** Botín con probabilidades; con 200 amistad se duplica y da un objeto extra. */
+  _mossDrop(doubled) {
+    const mult = doubled ? 2 : 1;
+    const d = CONFIG.moss.drops;
+    const roll = (obj) => (chance(obj.chance) ? randomBetween(obj.min, obj.max) * mult : 0);
+    const grants = [];
+
+    let m = roll(d.mushroom);
+    if (m) { economy.addResource("mushrooms", m); grants.push(`🍄 +${m} hongo`); }
+    let l = roll(d.leaves);
+    if (l) { economy.addResource("whispering_forest.leaves", l); grants.push(`🍃 +${l} hojas`); }
+    let b = roll(d.bundles);
+    if (b) { economy.addResource("whispering_forest.bundles", b); grants.push(`🍂 +${b} bultos`); }
+    let f = roll(d.flower);
+    if (f) { economy.addPetals(f); grants.push(`🌸 +${f} pétalos`); }
+    let r = roll(d.bouquet);
+    if (r) { economy.addBouquets(r); grants.push(`💐 +${r} ramos`); }
+
+    if (doubled) {
+      const extra = randomBetween(1, 3);
+      economy.addResource("whispering_forest.leaves", extra);
+      grants.push(`✨ objeto extra +${extra} hojas`);
+    }
+
+    if (grants.length) {
+      eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+        text: "🦔 ¡Botín del topo! " + grants.join(", ")
+      });
+    }
+  }
+
+  /** Entierra o desentierra todas las plantas del campo. */
+  _buryAllPlants(buried) {
+    for (const f of this.flowers) {
+      if (!f.el) continue;
+      f.el.classList.toggle("buried", !!buried);
+    }
+  }
+
+  /** Desentierra las plantas durante `ms` y luego vuelve a enterrarlas. */
+  _revealPlantsFor(ms) {
+    this._buryAllPlants(false);
+    clearTimeout(this._mossRevealTimer);
+    this._mossRevealTimer = setTimeout(() => {
+      if (this.mossState) this._buryAllPlants(true);
+    }, ms);
+  }
+
+  /** Termina el evento: desentierra las plantas y retira al topo. */
+  _endMoss() {
+    this._buryAllPlants(false);
+    this._removeMoss();
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+      text: "🦔 El topo se fue. Las plantas vuelven a la superficie."
+    });
+    saveManager.saveGame();
+  }
+
+  /** Retira el sprite y limpia los temporizadores/movimiento del topo. */
+  _removeMoss() {
+    if (this.mossEl && this.mossEl.parentNode) {
+      this.mossEl.remove();
+    }
+    this.mossEl = null;
+    if (this.mossState) {
+      clearTimeout(this.mossState.endTimer);
+      this.mossState = null;
+    }
+    if (this._mossRevealTimer) {
+      clearTimeout(this._mossRevealTimer);
+      this._mossRevealTimer = null;
+    }
+    if (this._mossMoveTimer) {
+      clearInterval(this._mossMoveTimer);
+      this._mossMoveTimer = null;
     }
   }
 

@@ -14,10 +14,16 @@ export class FlowerSystem {
 
   /** Devuelve las flores disponibles en una zona y momento dado. */
   flowersForZone(zoneId, timeOfDay) {
-    return Object.values(FLOWERS).filter((f) =>
-      f.zone === zoneId &&
-      timeMatches(f.time, timeOfDay)
-    );
+    return Object.values(FLOWERS).filter((f) => {
+      if (f.zone !== zoneId) return false;
+      // Los drops rarísimos (p. ej. el hongo) no forman parte del campo normal.
+      if (f.special?.type === "rare_dropped") return false;
+      // Base día/noche: el jardín no tiene flora nocturna propia aún, así que
+      // sigue mostrando sus flores en atardecer/noche para no vaciarse. El
+      // contenido nocturno real del jardín se implementa más adelante.
+      if (zoneId === "spring_garden" && (timeOfDay === "night" || timeOfDay === "sunset")) return true;
+      return timeMatches(f.time, timeOfDay);
+    });
   }
 
   /** Tamaño de una zona: cuántas flores se colocan a la vez. */

@@ -39,30 +39,6 @@ export const FLOWERS = {
     notes: "Siempre mira hacia la luz del día.",
     special: null
   },
-  bluebell: {
-    id: "bluebell",
-    name: "Campanilla Azul",
-    rarity: "uncommon",
-    petalValue: 2,
-    zone: "whispering_forest",
-    time: ["day", "sunset"],
-    emoji: "🔔",
-    spawnChance: 0.3,
-    notes: "Las criaturas azules parecen sentirse atraídas por estas flores.",
-    special: { type: "creature_affinity", creature: "lumi" }
-  },
-  rose: {
-    id: "rose",
-    name: "Rosa",
-    rarity: "rare",
-    petalValue: 3,
-    zone: "whispering_forest",
-    time: ["day", "sunset"],
-    emoji: "🌹",
-    spawnChance: 0.12,
-    notes: "Puede aparecer después de completar determinados eventos.",
-    special: { type: "after_event", event: "any" }
-  },
   // Fichas de vegetación del bosque (la moneda local son hojas).
   // Se recolectan como "flores" del bioma: hierba, hojas y hojas caídas.
   forest_grass: {
@@ -112,6 +88,20 @@ export const FLOWERS = {
     spawnChance: 0.12,
     notes: "Hojas secas que crujen bajo los pies y guardan secretos.",
     special: null
+  },
+  // Hongo rarísimo: no aparece en el campo normal. Solo surge al recolectar
+  // una hoja del bosque con probabilidad 1/1000 y permanece hasta recogerlo.
+  mushroom: {
+    id: "mushroom",
+    name: "Hongo Raro",
+    rarity: "secret",
+    petalValue: 1,
+    zone: "whispering_forest",
+    time: ["day", "sunset", "night"],
+    emoji: "🍄",
+    spawnChance: 0,
+    notes: "Un hongo rarísimo que asoma tras recolectar muchas hojas.",
+    special: { type: "rare_dropped", chance: 0.001, persist: true }
   },
   moonflower: {
     id: "moonflower",

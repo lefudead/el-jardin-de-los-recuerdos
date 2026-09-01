@@ -7,8 +7,8 @@ export const PUZZLES = {
     name: "La Habitación de las Flores",
     type: "sequence",
     location: "abandoned_house",
-    clues: ["journal:lumi", "flower:blue"],
-    solution: ["moonflower", "daisy", "rose"],
+    clues: ["journal:lumi", "flower:leaves"],
+    solution: ["moonflower", "daisy", "forest_fallen"],
     hint: "La respuesta florece cuando recuerdas.",
     reward: { type: "item", id: "old_key" }
   }

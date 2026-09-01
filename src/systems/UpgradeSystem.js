@@ -14,6 +14,7 @@ import { economy } from "./EconomyInstance.js";
 import { eventBus } from "./EventBus.js";
 import { saveManager } from "./SaveInstance.js";
 import { DEFAULT_SCOPE } from "../data/zones.js";
+import { buffSystem } from "./BuffSystem.js";
 
 export class UpgradeSystem {
   getAll() {
@@ -57,6 +58,8 @@ export class UpgradeSystem {
       const v = UPGRADES[id]?.effect?.[field];
       if (typeof v === "number") acc += v;
     }
+    // Bonificaciones temporales de las pociones (se suman igual que las mejoras).
+    acc += buffSystem.bonusFor(field);
     return acc;
   }
 

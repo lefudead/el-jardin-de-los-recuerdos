@@ -110,14 +110,19 @@ export const CREATURES = {
     personality: ["shy", "protective"],
     zone: "whispering_forest",
     schedule: { start: 16, end: 20 },
-    behaviors: ["buries_flowers"],
-    interference: "buries_flowers",
+    behaviors: ["buries_plants"],
+    interference: "bury_plants",
+    interferenceConfig: {
+      eventMs: 60000,          // el evento dura 60 s
+      visibleAfterTouchMs: 2000, // al tocarlo, las plantas se ven 2 s
+      researchPerTap: 10
+    },
     observations: ["appears_near_trees", "buries_objects"],
     capture: { cage: "cage_moss", requiredObservations: 4 },
     favoriteFood: "glowing_mushroom",
     taming: { taps: 10, timeLimit: 5000 },
     companionSkill: { id: "digger" },
-    emoji: "🍄",
+    emoji: "🦔",
     notes: "Moss no roba: entierra. Cree que así protege lo que ama.",
     bio: "Moss escondía los regalos para que nadie los rompiera. Ahora entierra flores por lo mismo."
   }

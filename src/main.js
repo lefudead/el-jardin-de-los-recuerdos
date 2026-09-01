@@ -26,6 +26,9 @@ import { captureSystem } from "./systems/CaptureSystem.js";
 import { tamingSystem } from "./systems/TamingSystem.js";
 import { rewardSystem } from "./systems/RewardSystem.js";
 import { economy } from "./systems/EconomyInstance.js";
+import { buffSystem } from "./systems/BuffSystem.js";
+import { POTIONS } from "./data/potions.js";
+import { FLOWERS } from "./data/flowers.js";
 import { audio } from "./systems/AudioSystem.js";
 import { cageForCreature } from "./data/cages.js";
 import { foodForCreature } from "./data/foods.js";
@@ -94,6 +97,17 @@ async function start() {  await preload();
   });
   dayNight.applyBodyClass();
 
+  // Ciclo día/noche vinculado al tiempo real del jugador.
+  dayNight.startRealTimeSync();
+  eventBus.on(eventBus.constructor.EVENTS.TIME_CHANGED, () => {
+    // El estilo global del <body> siempre refleja la noche.
+    dayNight.applyBodyClass();
+    // Si el jardín está visible, repuebla las flores según el nuevo momento
+    // (funciona en cualquier zona: jardín o bosque).
+    const gardenActive = document.getElementById("screen-garden")?.classList.contains("active");
+    if (gardenActive) gardenScene.refresh();
+  });
+
   settingsScene.init();
 
   // Menú
@@ -146,6 +160,10 @@ window.__garden = {
   investigation: investigationSystem,
   economy,
   audio,
+  dayNight,
+  flowerSystem,
+  flowers: () => FLOWERS,
+  flowersForZone: (z, t) => flowerSystem.flowersForZone(z, t).map((f) => f.id),
   audioDebug: () => ({ track: audio.currentTrack, melody: !!audio.currentMelody, ctx: audio.ctx ? audio.ctx.state : null, elSrc: audio.musicElement ? audio.musicElement.src : null, elPaused: audio.musicElement ? audio.musicElement.paused : null, sourceConnected: !!audio.musicSource }),
   grantBouquets: (n) => economy.addBouquets(n),
   addPetals: (n) => economy.addPetals(n),
@@ -168,6 +186,28 @@ window.__garden = {
   setNiloAutoSpawn(v) {
     gardenScene.autoSpawnNilo = !!v;
     return gardenScene.autoSpawnNilo;
+  },
+  // Topo del bosque (Moss): helpers de depuración para tests.
+  spawnMossForce() {
+    gardenScene._spawnMoss();
+    return !!gardenScene.mossState;
+  },
+  mossActive: () => !!gardenScene.mossState,
+  mossTap() {
+    gardenScene._onMossTap();
+    return !!gardenScene.mossState;
+  },
+  // Base de pociones (hongos como ingrediente).
+  potions: () => POTIONS,
+  buff: buffSystem,
+  buffActive: () => buffSystem.hasPotions(),
+  spawnRareMushroom: () => { gardenScene._spawnRareMushroom(); return gardenScene.flowers.some((f) => f.flower?.id === "mushroom"); },
+  usePotion(id) {
+    const p = POTIONS[id];
+    if (!p) return { ok: false, reason: "no_potion" };
+    if (!economy.spendResource("mushrooms", p.mushroomCost)) return { ok: false, reason: "afford" };
+    buffSystem.apply(p.effect, p.durationMs);
+    return { ok: true, potion: p };
   },
   buyCage(creatureId) {
     const cage = cageForCreature(creatureId);

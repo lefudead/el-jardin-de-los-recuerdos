@@ -13,6 +13,7 @@ export function defaultState() {
     resources: {
       petals: 0,
       bouquets: 0,
+      mushrooms: 0,
       // economías por zona (Actualización 3.1): { zoneId: { currencyId: amount } }
       zones: defaultZoneResources()
     },

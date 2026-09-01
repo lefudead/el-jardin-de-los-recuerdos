@@ -164,7 +164,7 @@ export const STORY = {
   forest_tutorial: {
     id: "forest_tutorial",
     chapter: 4,
-    text: "Aquí las flores no dan ramos: guardan hojas de luz 🍃. Recolecta las campanillas azules y las rosas para juntar hojas propias del bosque.",
+    text: "Aquí las flores no dan ramos: guardan hojas de luz 🍃. Recolecta hierba, hojas y hojas caídas para juntar hojas propias del bosque. De vez en cuando, entre las hojas, asoma un hongo rarísimo 🍄.",
     speaker: "Narradora",
     requirements: [],
     next: null,
