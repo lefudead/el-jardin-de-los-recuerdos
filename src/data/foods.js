@@ -25,7 +25,7 @@ export const FOODS = {
     emoji: "🍄",
     cost: 8,
     creatureId: "moss",
-    description: "Un hongo que brilla bajo tierra. A Moss le encanta."
+    description: "Un hongo que brilla entre la hojarasca del bosque. A Moss, el camaleón, le encanta."
   },
   honey_drop: {
     id: "honey_drop",

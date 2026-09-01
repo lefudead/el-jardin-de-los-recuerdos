@@ -49,6 +49,9 @@ export class GardenScene {
     this.mossState = null;
     this._mossRevealTimer = null;
     this._mossMoveTimer = null;
+    // Partículas flotantes (recursos que rebotan)
+    this._floatingParticles = [];
+    this._particleRafId = null;
   }
 
   /** Configura el contenedor y los listeners del área. */
@@ -135,14 +138,14 @@ export class GardenScene {
     el.classList.add("pressed");
     setTimeout(() => el.classList.remove("pressed"), 90);
 
-    // partícula de pétalo
-    this.spawnPetal(el);
+    // partícula de pétalo / recurso flotante
+    this.spawnPetal(entry);
 
     // El hongo rarísimo se recoge y se va (no respawnea, persiste hasta recogerlo).
     if (entry.flower?.id === "mushroom" && entry.flower?.special?.type === "rare_dropped") {
       economy.addResource("mushrooms", 1);
       eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-        text: "🍄 ¡Recogiste un Hongo Raro! Se guarda para hacer pociones."
+        text: "🍄 ¡Recogiste un Hongo Mágico! Se guarda para hacer pociones."
       });
       entry.active = false;
       if (entry.el && entry.el.parentNode) entry.el.remove();
@@ -224,7 +227,7 @@ export class GardenScene {
     // Sin timer: el hongo persiste hasta que se recoge.
     this.flowers.push({ el, flower: m, timer: null, active: true, persist: true });
     eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-      text: "🍄 ¡Apareció un Hongo Raro entre las hojas! Recógelo."
+      text: "🍄 ¡Apareció un Hongo Mágico entre las hojas! Recógelo."
     });
     saveManager.saveGame();
   }
@@ -320,21 +323,53 @@ export class GardenScene {
   }
 
   /** Crea una partícula de pétalo que sube desde la flor. */
-  spawnPetal(el) {
-    if (!this.container) return;
+  /** Crea partículas de recurso que rebotan por el jardín. */
+  spawnPetal(entry) {
+    if (!this.container || !entry || !entry.el) return;
+    const el = entry.el;
+    const flower = entry.flower;
     const rect = el.getBoundingClientRect();
     const areaRect = this.container.getBoundingClientRect();
     const x = rect.left - areaRect.left + rect.width / 2;
-    const y = rect.top - areaRect.top;
+    const y = rect.top - areaRect.top + rect.height / 2;
 
-    const p = document.createElement("div");
-    p.className = "petal-float";
-    p.textContent = "🌸";
-    p.style.left = x + "px";
-    p.style.top = y + "px";
-    this.container.appendChild(p);
-    setTimeout(() => p.remove(), 750);
+    // Emojis según zona / flor
+    const zone = gs.state.progression.currentZone;
+    const emojis = [flower?.emoji || "🌸"];
+    if (zone === "whispering_forest") {
+      emojis.push("🍃", "🍂", "🍄");
+    } else {
+      emojis.push("🌸", "🌼", "✨");
+    }
 
+    // Partículas con movimiento y rebote
+    const count = randomBetween(3, 5);
+    for (let i = 0; i < count; i++) {
+      const emoji = emojis[i % emojis.length];
+      const p = document.createElement("div");
+      p.className = "floating-particle";
+      p.textContent = emoji;
+      p.style.left = x + "px";
+      p.style.top = y + "px";
+      p.style.fontSize = randomBetween(12, 22) + "px";
+      this.container.appendChild(p);
+
+      const angle = Math.random() * Math.PI * 2;
+      const speed = randomBetween(1.2, 3.5);
+      this._floatingParticles.push({
+        el: p,
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life: 0,
+        maxLife: randomBetween(60, 120),
+      });
+    }
+
+    if (!this._particleRafId) this._particleLoop();
+
+    // Destello de brillo
     const sp = document.createElement("div");
     sp.className = "sparkle";
     sp.textContent = "✨";
@@ -342,6 +377,47 @@ export class GardenScene {
     sp.style.top = y - 10 + "px";
     this.container.appendChild(sp);
     setTimeout(() => sp.remove(), 500);
+  }
+
+  /** Loop de requestAnimationFrame para mover y rebotar las partículas. */
+  _particleLoop() {
+    if (!this.container) return;
+    const areaRect = this.container.getBoundingClientRect();
+    const maxW = areaRect.width;
+    const maxH = areaRect.height;
+
+    for (let i = this._floatingParticles.length - 1; i >= 0; i--) {
+      const p = this._floatingParticles[i];
+      p.life++;
+      p.vy += 0.04; // gravedad suave
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Rebote en bordes
+      if (p.x <= 0) { p.x = 0; p.vx *= -0.75; }
+      else if (p.x >= maxW) { p.x = maxW; p.vx *= -0.75; }
+      if (p.y <= 0) { p.y = 0; p.vy *= -0.75; }
+      else if (p.y >= maxH) { p.y = maxH; p.vy *= -0.75; }
+
+      // Desvanecer al final
+      const fadeStart = p.maxLife * 0.65;
+      const opacity = p.life > fadeStart ? 1 - (p.life - fadeStart) / (p.maxLife - fadeStart) : 1;
+
+      p.el.style.left = p.x + "px";
+      p.el.style.top = p.y + "px";
+      p.el.style.opacity = opacity;
+
+      if (p.life >= p.maxLife) {
+        p.el.remove();
+        this._floatingParticles.splice(i, 1);
+      }
+    }
+
+    if (this._floatingParticles.length > 0) {
+      this._particleRafId = requestAnimationFrame(() => this._particleLoop());
+    } else {
+      this._particleRafId = null;
+    }
   }
 
   /** Renderiza el fondo según la zona y el momento. */
@@ -365,6 +441,15 @@ export class GardenScene {
     this.flowers = [];
     this._removeNilo();
     this._removeMoss();
+    // Limpiar partículas flotantes
+    if (this._particleRafId) {
+      cancelAnimationFrame(this._particleRafId);
+      this._particleRafId = null;
+    }
+    if (this.container) {
+      this.container.querySelectorAll(".floating-particle").forEach((el) => el.remove());
+    }
+    this._floatingParticles = [];
   }
 
   /** Se llama cuando el jugador cambia de zona o de día/noche. */
@@ -579,9 +664,14 @@ export class GardenScene {
     this._revealPlantsFor(cfg.visibleAfterTouchMs);
     this._mossHop();
 
-    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-      text: "🦎 ¡El camaleón se escondió! Las plantas quedan a la vista 1 s."
-    });
+    // El mensaje de "se escondió" solo se muestra en el primer toque,
+    // para no repetirse en cada tap.
+    this.mossState.taps = (this.mossState.taps || 0) + 1;
+    if (this.mossState.taps === 1) {
+      eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+        text: "🦎 ¡El camaleón se escondió! Las plantas quedan a la vista 1 s."
+      });
+    }
     saveManager.saveGame();
   }
 

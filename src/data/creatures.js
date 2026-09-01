@@ -118,7 +118,7 @@ export const CREATURES = {
       researchPerSpawn: 10     // +10% de investigación por aparición
     },
     observations: ["appears_near_trees", "buries_objects"],
-    capture: { cage: "cage_moss", requiredObservations: 4 },
+    capture: { cage: "cage_moss", requiredObservations: 2 },
     favoriteFood: "glowing_mushroom",
     taming: { taps: 10, timeLimit: 5000 },
     companionSkill: { id: "digger" },

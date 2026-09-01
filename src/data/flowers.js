@@ -89,18 +89,18 @@ export const FLOWERS = {
     notes: "Hojas secas que crujen bajo los pies y guardan secretos.",
     special: null
   },
-  // Hongo rarísimo: no aparece en el campo normal. Solo surge al recolectar
+  // Hongo mágico: no aparece en el campo normal. Solo surge al recolectar
   // una hoja del bosque con probabilidad 1/1000 y permanece hasta recogerlo.
   mushroom: {
     id: "mushroom",
-    name: "Hongo Raro",
+    name: "Hongo Mágico",
     rarity: "secret",
     petalValue: 1,
     zone: "whispering_forest",
     time: ["day", "sunset", "night"],
     emoji: "🍄",
     spawnChance: 0,
-    notes: "Un hongo rarísimo que asoma tras recolectar muchas hojas.",
+    notes: "Un hongo mágico y rarísimo que asoma tras recolectar muchas hojas. Se guarda para hacer pociones.",
     special: { type: "rare_dropped", chance: 0.001, persist: true }
   },
   moonflower: {
