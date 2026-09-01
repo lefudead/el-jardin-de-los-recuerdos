@@ -16,11 +16,13 @@ export const CONFIG = {
   debug: false,
 
   // Ciclo día/noche vinculado al tiempo real del jugador (horas locales).
+  // La hora local depende de la zona horaria del país del jugador: si allí es
+  // de noche, su juego está de noche, aunque en otra zona sea de día.
   dayNight: {
     realTimeSyncMs: 30000,  // re‑evalúa la hora real cada 30 s
-    dayStartHour: 7,        // a las 7 empieza el día
-    sunsetStartHour: 18,    // a las 18 el atardecer
-    nightStartHour: 20      // a las 20 la noche
+    dayStartHour: 6,        // a las 6 empieza el día
+    sunsetStartHour: 15,    // a las 15 empieza el atardecer
+    nightStartHour: 18      // a las 18 empieza la noche
   },
 
   // Resolución lógica orientativa (9:16)
