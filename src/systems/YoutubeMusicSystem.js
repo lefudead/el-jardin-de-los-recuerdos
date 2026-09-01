@@ -28,8 +28,10 @@ function extractPlaylistId(url) {
 
 function parseUrl(url) {
   const playlist = extractPlaylistId(url);
-  if (playlist) return { type: "playlist", id: playlist };
   const video = extractVideoId(url);
+  // watch?v=VIDEO&list=PLAYLIST: el usuario quiere ese video, no el 1º de la lista.
+  if (video && playlist) return { type: "video_playlist", id: video, playlist };
+  if (playlist) return { type: "playlist", id: playlist };
   if (video) return { type: "video", id: video };
   return null;
 }
@@ -62,7 +64,6 @@ class YoutubeMusicSystem {
     this._initPromise = new Promise((resolve) => {
       const create = () => {
         this.apiReady = true;
-        this._createPlayer();
         resolve();
       };
       if (window.YT && window.YT.Player) { create(); return; }
@@ -74,35 +75,73 @@ class YoutubeMusicSystem {
     return this._initPromise;
   }
 
-  /** Crea el reproductor oculto (1px, sin controles). */
-  _createPlayer() {
+  /**
+   * Crea el reproductor oculto (1px, sin controles) con el objetivo ya puesto
+   * en `playerVars` (autoplay:1, loop:1). Re-crear en cada carga evita quedarse
+   * atascado en un estado roto del reproductor anterior y deja que el propio
+   * iframe de YouTube gestione el arranque dentro del gesto del usuario.
+   */
+  _createPlayer(videoId, vars) {
     const host = Q("external-music-host");
     if (!host) return;
-    if (Q("external-music-player")) return;
+    host.innerHTML = "";
+    this._ready = false;
+    if (this._unlockRemover) { this._unlockRemover(); this._unlockRemover = null; }
     const div = document.createElement("div");
     div.id = "external-music-player";
     host.appendChild(div);
     this.player = new YT.Player("external-music-player", {
       height: "1",
       width: "1",
-      videoId: "",
+      videoId,
       playerVars: {
         controls: 0,
         disablekb: 1,
         fs: 0,
         playsinline: 1,
-        rel: 0
+        rel: 0,
+        loop: 1,
+        autoplay: 1,
+        // Chrome bloquea el autoplay CON sonido en iframes de terceros. Arrancar
+        // en silencio (siempre permitido) y desmutear tras un toque del usuario.
+        mute: 1,
+        ...vars
       },
       events: {
-        onReady: () => { this._ready = true; },
+        onReady: () => {
+          this._ready = true;
+          const ifr = Q("external-music-player")?.querySelector("iframe");
+          if (ifr) ifr.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
+          try { this.player.setLoop(true); } catch (err) { /* noop */ }
+          const turnOnSound = () => {
+            try { if (typeof this.player.unMute === "function") this.player.unMute(); } catch (err) { /* noop */ }
+            try { this.player.playVideo(); } catch (err) { /* noop */ }
+            this.setStatus(this._okStatus || "");
+            if (this._unlockRemover) { this._unlockRemover(); this._unlockRemover = null; }
+          };
+          // El ▶ ya fue un gesto del usuario; a veces llega a desmutear solo.
+          turnOnSound();
+          try {
+            if (typeof this.player.isMuted === "function" && this.player.isMuted()) {
+              this.setStatus("🔇 Toca el jardín para activar el sonido 🔊");
+              const listener = () => turnOnSound();
+              this._unlockRemover = () => {
+                document.removeEventListener("pointerdown", listener);
+                document.removeEventListener("keydown", listener);
+                this._unlockRemover = null;
+              };
+              document.addEventListener("pointerdown", listener);
+              document.addEventListener("keydown", listener);
+            }
+          } catch (err) { /* noop */ }
+        },
         onStateChange: (e) => {
           if (e.data === YT.PlayerState.ENDED) {
-            // El bucle lo gestiona la propia playlist del reproductor.
             try { this.player.playVideo(); } catch (err) { /* noop */ }
           }
         },
         onError: (e) => {
-          this.setStatus("No se pudo reproducir el enlace (código " + e.data + ").");
+          this.setStatus("No se pudo reproducir el enlace (código " + e.data + "). Revisa que el video permita reproducirse fuera de YouTube.");
         }
       }
     });
@@ -114,7 +153,6 @@ class YoutubeMusicSystem {
    */
   async loadUrl(url, force = false) {
     await this._ensureApi();
-    if (!this.player) return { ok: false, reason: "no_player" };
     const parsed = parseUrl(url);
     if (!parsed) {
       this.setStatus("Ese enlace no parece de YouTube.");
@@ -125,29 +163,25 @@ class YoutubeMusicSystem {
     audio.stopMusic();
     gameState.settings.externalMusic.url = url;
     gameState.settings.externalMusic.enabled = true;
-    // Espera al reproductor listo (máx 8 s) para evitar cargar antes de tiempo.
-    if (!this._ready) {
-      await new Promise((resolve) => {
-        const t = setInterval(() => {
-          if (this._ready) { clearInterval(t); resolve(); }
-        }, 100);
-        setTimeout(() => { clearInterval(t); resolve(); }, 8000);
-      });
+    // Objetivo del reproductor según el tipo de enlace.
+    let videoId = "";
+    const vars = {};
+    if (parsed.type === "video_playlist") {
+      videoId = parsed.id;
+      vars.listType = "playlist";
+      vars.list = parsed.playlist;
+    } else if (parsed.type === "playlist") {
+      vars.listType = "playlist";
+      vars.list = parsed.id;
+    } else {
+      videoId = parsed.id;
     }
     try {
-      if (parsed.type === "video") {
-        // Un único video en bucle: se carga como playlist de 1 elemento.
-        this.player.loadPlaylist({ list: [parsed.id], index: 0 });
-      } else {
-        this.player.loadPlaylist({ listType: "playlist", list: parsed.id, index: 0 });
-      }
-      setTimeout(() => {
-        try { this.player.setLoop(true); } catch (err) { /* noop */ }
-        try { this.player.playVideo(); } catch (err) { /* noop */ }
-      }, 700);
-      this.setStatus(parsed.type === "video"
+      this._okStatus = parsed.type === "video"
         ? "Tu video sonando en bucle 🔊"
-        : "Tu playlist sonando en bucle 🔊");
+        : "Tu música sonando en bucle 🔊";
+      this._createPlayer(videoId, vars);
+      this.setStatus(this._okStatus);
       saveManager.saveGame();
       return { ok: true, type: parsed.type };
     } catch (err) {
@@ -173,6 +207,7 @@ class YoutubeMusicSystem {
   disable() {
     const s = gameState.settings.externalMusic;
     s.enabled = false;
+    if (this._unlockRemover) { this._unlockRemover(); this._unlockRemover = null; }
     try { if (this.player) this.player.pauseVideo(); } catch (err) { /* noop */ }
     this.setStatus("");
     audio.playZoneMusic(gameState.state.progression.currentZone);

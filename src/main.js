@@ -179,7 +179,27 @@ window.__garden = {
     enable: () => youtubeMusic.enable(),
     disable: () => youtubeMusic.disable(),
     loadByUrl: (url) => youtubeMusic.loadUrl(url),
-    parse: (url) => parseUrl(url)
+    parse: (url) => parseUrl(url),
+    playerState: () => {
+      const p = youtubeMusic.player;
+      if (!p) return null;
+      try {
+        const get = (fn) => (typeof p[fn] === "function" ? p[fn]() : undefined);
+        return {
+          state: get("getPlayerState"),
+          playlist: get("getPlaylist"),
+          playlistIndex: get("getPlaylistIndex"),
+          videoData: get("getVideoData"),
+          videoUrl: get("getVideoUrl"),
+          muted: get("isMuted"),
+          volume: get("getVolume"),
+          videoLoadedFraction: get("getVideoLoadedFraction"),
+          duration: get("getDuration")
+        };
+      } catch (e) {
+        return { err: e.message };
+      }
+    }
   },
   grantBouquets: (n) => economy.addBouquets(n),
   addPetals: (n) => economy.addPetals(n),
