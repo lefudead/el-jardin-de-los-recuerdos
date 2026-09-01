@@ -7,7 +7,8 @@ import { gameState } from "./GameState.js";
 
 /** Pista por zona → archivo MP3 (null = usar sintetizador). */
 const ZONE_TRACKS = {
-  spring_garden: "assets/audio/music/florar.mp3"
+  spring_garden: "assets/audio/music/florar.mp3",
+  whispering_forest: "assets/audio/music/bosque.mp3"
 };
 
 class AudioSystem {
