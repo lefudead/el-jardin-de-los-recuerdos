@@ -30,8 +30,9 @@ async function getPageWs() {
 }
 function connect(url) { return new Promise((res, rej) => { const ws = new WebSocket(url); ws.onopen = () => res(ws); ws.onerror = (e) => rej(e); }); }
 let mid = 0; const pend = new Map();
+let onPageLoad = null;
 function send(ws, m, p = {}) { return new Promise((res, rej) => { const id = ++mid; pend.set(id, { res, rej }); ws.send(JSON.stringify({ id, method: m, params: p })); }); }
-function attach(ws) { ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.id && pend.has(m.id)) { const p = pend.get(m.id); pend.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); } }; }
+function attach(ws) { ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.method === "Page.loadEventFired" && onPageLoad) { onPageLoad(); onPageLoad = null; } if (m.id && pend.has(m.id)) { const p = pend.get(m.id); pend.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); } }; }
 async function E(ws, x) { const r = await send(ws, "Runtime.evaluate", { expression: x, returnByValue: true, awaitPromise: true }); if (r.exceptionDetails) throw new Error("eval: " + JSON.stringify(r.exceptionDetails)); return r.result?.value; }
 
 /** Avanza todos los diálogos visibles. */
@@ -47,11 +48,14 @@ async function advanceDialogs(ws, max = 30) {
 
 async function main() {
   const ws = await connect(await getPageWs()); attach(ws); await send(ws, "Runtime.enable");
+  await send(ws, "Page.enable");
+  const nav = (url) => new Promise((resolve) => { onPageLoad = () => resolve(); send(ws, "Page.navigate", { url }); });
 
   // Partida nueva limpia determinista (borra estado persistido Y en memoria)
-  await E(ws, `location.href=${JSON.stringify(APP)}`);
+  await nav(APP);
   await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   await E(ws, `window.__garden.reset()`);
+  await new Promise((resolve) => { onPageLoad = () => resolve(); });
   const ready = await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   check("la app cargó (API de depuración)", ready === true);
   await E(ws, `window.__garden.setNiloAutoSpawn(false)`);
@@ -163,7 +167,7 @@ async function main() {
   check("memoria 'La cinta de Nilo' encontrada", memRestored === true);
 
   // Persistencia tras recargar
-  await E(ws, `location.reload()`);
+  await nav(await E(ws, `location.href`));
   await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   await sl(400);
   check("persistencia: Nilo sigue capturado y domesticado tras recargar",
