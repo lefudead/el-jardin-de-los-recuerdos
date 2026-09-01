@@ -194,6 +194,8 @@ body.night.zone-whispering_forest #screen-garden {
 
 .map-card.locked { opacity: 0.7; }
 .map-card.current { outline: 2px solid var(--accent); }
+.map-card.maintenance { opacity: 0.6; cursor: not-allowed; background: repeating-linear-gradient(45deg, rgba(255,255,255,0.04), rgba(255,255,255,0.04) 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px); }
+.map-card.maintenance .map-status { color: var(--gold); font-weight: 600; }
 
 .map-name { font-weight: 600; font-size: 16px; }
 .map-status { color: var(--text-dim); font-size: 13px; }

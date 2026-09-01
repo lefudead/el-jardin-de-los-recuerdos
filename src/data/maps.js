@@ -24,7 +24,8 @@ export const MAPS = {
     description: "El ciclo día/noche importa aquí. Flores lunares y reflejos.",
     unlockCost: 100,
     unlockRequirement: null,
-    emoji: "🌙"
+    emoji: "🌙",
+    maintenance: true
   },
   abandoned_house: {
     id: "abandoned_house",
@@ -32,7 +33,8 @@ export const MAPS = {
     description: "Escape rooms, documentos y códigos.",
     unlockCost: 150,
     unlockRequirement: null,
-    emoji: "🏚️"
+    emoji: "🏚️",
+    maintenance: true
   },
   memory_garden: {
     id: "memory_garden",

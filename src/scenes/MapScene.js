@@ -42,17 +42,18 @@ export class MapScene {
       const lockedByStory = m.unlockRequirement && !unlocked;
 
       let status = "";
-      if (isCurrent) status = "Aquí";
+      if (m.maintenance) status = "🔧 En mantenimiento";
+      else if (isCurrent) status = "Aquí";
       else if (unlocked) status = `Desbloqueado · Coste: ${m.unlockCost} 💐`;
       else if (lockedByStory) status = "🔒 Requiere avanzar la historia";
       else status = `🔒 Bloqueado · Coste: ${m.unlockCost} 💐`;
 
-      html += `<div class="map-card ${unlocked ? "" : "locked"} ${isCurrent ? "current" : ""}" data-map="${m.id}">
+      html += `<div class="map-card ${unlocked && !m.maintenance ? "" : "locked"} ${m.maintenance ? "maintenance" : ""} ${isCurrent ? "current" : ""}" data-map="${m.id}">
         <div>
           <div class="map-name">${m.emoji} ${m.name}</div>
           <div class="map-status">${status}</div>
         </div>
-        ${!unlocked && !lockedByStory ? `<button class="btn buy-btn buy-map" data-map="${m.id}">${m.unlockCost} 💐</button>` : ""}
+        ${!unlocked && !lockedByStory && !m.maintenance ? `<button class="btn buy-btn buy-map" data-map="${m.id}">${m.unlockCost} 💐</button>` : ""}
       </div>`;
     }
     this.el.innerHTML = html;
@@ -64,6 +65,12 @@ export class MapScene {
     }));
 
     this.el.querySelectorAll(".map-card").forEach((card) => card.addEventListener("click", () => {
+      const m = MAPS[card.dataset.map];
+      if (m && m.maintenance) {
+        audio.playError();
+        eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: "🔧 Este mapa está en mantenimiento." });
+        return;
+      }
       if (card.dataset.map !== current) this.travel(card.dataset.map);
     }));
   }
@@ -210,6 +217,7 @@ export class MapScene {
 
   travel(mapId) {
     if (!gameState.state.unlocks.maps.includes(mapId)) return;
+    if (MAPS[mapId] && MAPS[mapId].maintenance) return;
     gameState.state.progression.currentZone = mapId;
     saveManager.saveGame();
     // La música refleja la zona a la que viajamos (jardín/bosque) de inmediato.
