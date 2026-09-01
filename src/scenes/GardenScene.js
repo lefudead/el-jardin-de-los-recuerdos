@@ -52,6 +52,8 @@ export class GardenScene {
     // Partículas flotantes (recursos que rebotan)
     this._floatingParticles = [];
     this._particleRafId = null;
+    // Flores en movimiento: derivan y rebotan por el jardín (dificultan el tap)
+    this._flowerRafId = null;
   }
 
   /** Configura el contenedor y los listeners del área. */
@@ -126,7 +128,9 @@ export class GardenScene {
     });
 
     this.container.appendChild(el);
-    this.flowers.push({ el, flower: data, timer: null, active: true });
+    const entry = { el, flower: data, timer: null, active: true };
+    this.flowers.push(entry);
+    this._registerFlowerMotion(entry);
   }
 
   /** Lógica de tap: feedback, recompensa y reaparición. */
@@ -308,6 +312,7 @@ export class GardenScene {
     if (available.length === 0) {
       entry.active = true;
       entry.el.classList.remove("faded");
+      this._registerFlowerMotion(entry);
       return;
     }
     const pick = available[randomBetween(0, available.length - 1)];
@@ -320,6 +325,7 @@ export class GardenScene {
 
     entry.el.style.left = randomBetween(15, 85) + "%";
     entry.el.style.top = randomBetween(18, 70) + "%";
+    this._registerFlowerMotion(entry);
   }
 
   /** Crea una partícula de pétalo que sube desde la flor. */
@@ -420,6 +426,49 @@ export class GardenScene {
     }
   }
 
+  /** Asigna movimiento suave a una flor activa (derivan y rebotan en los bordes
+   *  del jardín, lo que hace más difícil acertarles el tap). El hongo raro no
+   *  se mueve: es un encuentro puntual. */
+  _registerFlowerMotion(entry) {
+    if (!entry || !entry.el) return;
+    if (entry.flower?.id === "mushroom") return;
+    if (!entry.active) return;
+    const speed = randomBetween(0.35, 1.1);
+    const a = Math.random() * Math.PI * 2;
+    entry.motion = {
+      x: 0,
+      y: 0,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed
+    };
+    if (!this._flowerRafId) this._flowerLoop();
+  }
+
+  /** Loop de requestAnimationFrame: mueve las flores activas y las rebota en
+   *  los bordes usando --dx/--dy (offset en px sobre la posición base en %). */
+  _flowerLoop() {
+    if (!this.container) return;
+    const area = this.container.getBoundingClientRect();
+    const maxW = area.width;
+    const maxH = area.height;
+    let any = false;
+    for (const f of this.flowers) {
+      if (!f.active || !f.el || !f.motion) continue;
+      const m = f.motion;
+      m.x += m.vx;
+      m.y += m.vy;
+      if (m.x <= 0) { m.x = 0; m.vx = Math.abs(m.vx); }
+      else if (m.x >= maxW) { m.x = maxW; m.vx = -Math.abs(m.vx); }
+      if (m.y <= 0) { m.y = 0; m.vy = Math.abs(m.vy); }
+      else if (m.y >= maxH) { m.y = maxH; m.vy = -Math.abs(m.vy); }
+      f.el.style.setProperty("--dx", m.x + "px");
+      f.el.style.setProperty("--dy", m.y + "px");
+      any = true;
+    }
+    if (any) this._flowerRafId = requestAnimationFrame(() => this._flowerLoop());
+    else this._flowerRafId = null;
+  }
+
   /** Renderiza el fondo según la zona y el momento. */
   applyZoneVisual() {
     const zone = gs.state.progression.currentZone;
@@ -441,6 +490,10 @@ export class GardenScene {
     this.flowers = [];
     this._removeNilo();
     this._removeMoss();
+    if (this._flowerRafId) {
+      cancelAnimationFrame(this._flowerRafId);
+      this._flowerRafId = null;
+    }
     // Limpiar partículas flotantes
     if (this._particleRafId) {
       cancelAnimationFrame(this._particleRafId);

@@ -433,14 +433,17 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
 /* ---------- FLOWERS ---------- */
 .flower {
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px)));
   font-size: 40px;
   cursor: pointer;
-  transition: transform 0.08s ease;
+  will-change: transform;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
-.flower.pressed { transform: translate(-50%, -50%) scale(1.12); }
+.flower.pressed {
+  transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(1.12);
+  transition: transform 0.08s ease;
+}
 
 .flower.faded { opacity: 0.25; filter: grayscale(0.8); pointer-events: none; }
 
