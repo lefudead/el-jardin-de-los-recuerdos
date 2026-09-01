@@ -104,7 +104,7 @@ export const CREATURES = {
   },
   moss: {
     id: "moss",
-    name: "Moss",
+    name: "Moss", // presentación: camaleón del bosque
     type: "memory_creature",
     typeLabel: "Criatura del bosque",
     personality: ["shy", "protective"],
@@ -114,16 +114,16 @@ export const CREATURES = {
     interference: "bury_plants",
     interferenceConfig: {
       eventMs: 60000,          // el evento dura 60 s
-      visibleAfterTouchMs: 2000, // al tocarlo, las plantas se ven 2 s
-      researchPerTap: 10
+      visibleAfterTouchMs: 1000, // al tocarlo, las plantas se ven 1 s
+      researchPerSpawn: 10     // +10% de investigación por aparición
     },
     observations: ["appears_near_trees", "buries_objects"],
     capture: { cage: "cage_moss", requiredObservations: 4 },
     favoriteFood: "glowing_mushroom",
     taming: { taps: 10, timeLimit: 5000 },
     companionSkill: { id: "digger" },
-    emoji: "🦔",
-    notes: "Moss no roba: entierra. Cree que así protege lo que ama.",
-    bio: "Moss escondía los regalos para que nadie los rompiera. Ahora entierra flores por lo mismo."
+    emoji: "🦎",
+    notes: "Es un camaleón, no roba: se mimetiza y esconde las plantas para protegerlas. Cada vez que aparece se aprende algo nuevo de él.",
+    bio: "Moss se camuflaba entre las hojas y ocultaba los regalos para que nadie los rompiera. Ahora esconde flores por lo mismo."
   }
 };

@@ -5,7 +5,7 @@
  */
 import { modal } from "./Modal.js";
 import { CREATURES } from "../data/creatures.js";
-import { cageForCreature } from "../data/cages.js";
+import { cageForCreature, cageCost } from "../data/cages.js";
 import { foodForCreature } from "../data/foods.js";
 import { investigationSystem } from "../systems/InvestigationSystem.js";
 import { captureSystem } from "../systems/CaptureSystem.js";
@@ -68,9 +68,10 @@ export class CreatureUI {
       if (!captured) {
         if (!captureSystem.hasCage(c.id)) {
           if (cage) {
-            const afford = economy.canAfford(cage.cost);
+            const cost = cageCost(cage);
+            const afford = economy.canAfford(cost);
             actions += `<button class="btn btn-primary" data-act="buy-cage" ${afford ? "" : "disabled"}>
-                Comprar ${cage.name} (${cage.cost} 💐)</button>`;
+                Comprar ${cage.name} (${cost} 💐)</button>`;
           }
         }
         if (captureSystem.canAttempt(c.id) && cage && captureSystem.hasCage(c.id)) {
@@ -127,7 +128,7 @@ export class CreatureUI {
     if (buyCage) buyCage.addEventListener("click", () => {
       const cage = cageForCreature(c.id);
       if (!cage) return;
-      if (economy.purchase(cage.cost)) {
+      if (economy.purchase(cageCost(cage))) {
         rewardSystem.give({ type: "cage", id: cage.id, creatureId: c.id });
         eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: `${cage.emoji} ${cage.name} añadida` });
       } else {

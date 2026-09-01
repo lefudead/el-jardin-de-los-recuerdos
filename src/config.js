@@ -49,14 +49,14 @@ export const CONFIG = {
     stealFlowers: 1           // cuántas flores se lleva por robo
   },
 
-  // Topo del bosque (GDD §41): entierra las plantas y huye por los huecos.
+  // Camaleón del bosque (GDD §41): esconde las plantas y se mueve entre los huecos.
   moss: {
     spawnIntervalMs: 25000,   // intento de aparición (lo gestiona el tick compartido)
     spawnChance: 0.22,        // 22% en cada intento (bosque)
     tapSpawnChance: 0.004,    // 0.4% al recoger una flor del bosque
     eventMs: 60 * 1000,       // el evento dura 60 s
-    visibleAfterTouchMs: 2000, // al tocarlo, las plantas se ven 2 s
-    researchPerTap: 10,       // +10% de investigación por toque
+    visibleAfterTouchMs: 1000, // al tocarlo, las plantas se ven 1 s
+    researchPerSpawn: 10,     // +10% de investigación por APARICIÓN (no por toque)
     dropDoubleFriendship: 200, // al llegar a 200 de amistad, botín doble + objeto extra
     drops: {
       mushroom: { chance: 0.05, min: 1, max: 5 },   // hongo
@@ -65,5 +65,12 @@ export const CONFIG = {
       flower:   { chance: 0.50, min: 10, max: 20 },  // pétalos
       bouquet:  { chance: 0.40, min: 5, max: 10 }    // ramos
     }
+  },
+
+  // Farmeo pasivo de apoyos (Actualización 3.1): cada apoyo activo con zona
+  // elegida produce monedas de esa zona desbloqueada automáticamente.
+  companionFarm: {
+    intervalMs: 30000,  // un tick de recolección cada 30 s
+    amount: 5           // monedas de la zona por apoyo en cada tick
   }
 };

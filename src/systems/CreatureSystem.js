@@ -187,6 +187,12 @@ export class CreatureSystem {
     }
   }
 
+  /** Marca una criatura como descubierta (verla una vez la añade al diario). */
+  markDiscovered(creatureId) {
+    this._discover(creatureId);
+    return this.isDiscovered(creatureId);
+  }
+
   /** Resuelve el encuentro cuando expira la ventana (lo llama la UI/GardenScene). */
   expireEncounter() {
     if (this.active && this.active.status === "stealing") {

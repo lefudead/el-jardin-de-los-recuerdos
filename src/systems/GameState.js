@@ -57,7 +57,9 @@ export function defaultState() {
     companions: {
       active: [],
       // máximo simultáneo elevado por mejoras compradas (0 = base 2)
-      slotsBought: 0
+      slotsBought: 0,
+      // zona de farmeo por apoyo activo: { creatureId: zoneId }
+      farmZone: {}
     },
     inventory: {
       items: [],   // { id, quantity }

@@ -60,6 +60,7 @@ export class JournalPanel {
           <button class="btn btn-small" data-creature="${id}">Ficha</button>
         </div>
         <div class="entry-status">${captured ? `Confianza: ${trust}% · ` : ""}Investigación: ${pct}%</div>
+        ${(c.bio || c.notes) ? `<div class="journal-relato">${c.bio || c.notes}</div>` : ""}
       </div>`;
     }
     return html + `</div>`;

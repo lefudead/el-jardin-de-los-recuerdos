@@ -109,10 +109,19 @@ export class MapScene {
       if (creature) {
         const skill = companionSystem.skillFor(creatureId);
         const skillLabel = skill ? (skill.name || skill.id) : null;
+        const farmZone = companionSystem.getFarmZone(creatureId);
+        const zones = companionSystem.farmableZones();
+        let zoneOpts = "";
+        for (const z of zones) {
+          zoneOpts += `<option value="${z.id}" ${z.id === farmZone ? "selected" : ""}>${z.emoji} ${z.name}</option>`;
+        }
         html += `<div class="support-slot-emoji">${creature.emoji || "🌸"}</div>
           <div class="support-slot-name">${creature.name}</div>
           ${skillLabel ? `<div class="support-slot-sub">${skillLabel}</div>` : ""}
-          <div class="support-slot-sub">Apoyando</div>`;
+          <div class="support-slot-sub">Apoyando</div>
+          ${zones.length ? `<label class="support-farm-label">Farma en:
+            <select class="support-farm-select" data-farm-zone="${creatureId}">${zoneOpts}</select>
+          </label>` : ""}`;
       } else if (isChoosing) {
         // Selector de criaturas domesticadas para asignar a este hueco.
         const available = companions.filter((c) => !active.includes(c.id));
@@ -147,6 +156,8 @@ export class MapScene {
   _wireSupport(el) {
     el.querySelectorAll("[data-support-slot]").forEach((slot) => {
       slot.addEventListener("click", (e) => {
+        // Ignorar clics dentro del selector de zona de farmeo.
+        if (e.target.closest && e.target.closest(".support-farm-select")) return;
         const idx = parseInt(slot.dataset.supportSlot, 10);
         // No abrir si ya está mostrando el selector.
         if (this._choosingIdx === idx) {
@@ -194,6 +205,15 @@ export class MapScene {
         e.stopPropagation();
         this._choosingIdx = null;
         this.render();
+      });
+    });
+
+    el.querySelectorAll("[data-farm-zone]").forEach((sel) => {
+      sel.addEventListener("change", (e) => {
+        e.stopPropagation();
+        const id = sel.dataset.farmZone;
+        const res = companionSystem.setFarmZone(id, sel.value);
+        if (!res.ok) { audio.playError(); this.render(); }
       });
     });
   }

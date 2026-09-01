@@ -30,7 +30,7 @@ import { buffSystem } from "./systems/BuffSystem.js";
 import { POTIONS } from "./data/potions.js";
 import { FLOWERS } from "./data/flowers.js";
 import { audio } from "./systems/AudioSystem.js";
-import { cageForCreature } from "./data/cages.js";
+import { cageForCreature, cageCost } from "./data/cages.js";
 import { foodForCreature } from "./data/foods.js";
 import { CONFIG } from "./config.js";
 import "./ui/Notification.js";
@@ -99,6 +99,10 @@ async function start() {  await preload();
 
   // Ciclo día/noche vinculado al tiempo real del jugador.
   dayNight.startRealTimeSync();
+
+  // Apoyos farmean pasivamente monedas de su zona elegida.
+  companionSystem.startFarming();
+
   eventBus.on(eventBus.constructor.EVENTS.TIME_CHANGED, () => {
     // El estilo global del <body> siempre refleja la noche.
     dayNight.applyBodyClass();
@@ -161,6 +165,7 @@ window.__garden = {
   economy,
   audio,
   dayNight,
+  config: CONFIG,
   flowerSystem,
   flowers: () => FLOWERS,
   flowersForZone: (z, t) => flowerSystem.flowersForZone(z, t).map((f) => f.id),
@@ -187,7 +192,7 @@ window.__garden = {
     gardenScene.autoSpawnNilo = !!v;
     return gardenScene.autoSpawnNilo;
   },
-  // Topo del bosque (Moss): helpers de depuración para tests.
+  // Camaleón del bosque (Moss): helpers de depuración para tests.
   spawnMossForce() {
     gardenScene._spawnMoss();
     return !!gardenScene.mossState;
@@ -212,7 +217,7 @@ window.__garden = {
   buyCage(creatureId) {
     const cage = cageForCreature(creatureId);
     if (!cage) return "no_cage";
-    if (!economy.purchase(cage.cost)) return "afford";
+    if (!economy.purchase(cageCost(cage))) return "afford";
     rewardSystem.give({ type: "cage", id: cage.id, creatureId });
     return "ok";
   },
@@ -242,7 +247,11 @@ window.__garden = {
     active: () => (gameState.state.companions?.active || []).slice(),
     maxActive: () => companionSystem.maxActive(),
     toggle: (id) => companionSystem.toggleActive(id),
-    buySlot: () => companionSystem.buySlot()
+    buySlot: () => companionSystem.buySlot(),
+    setFarmZone: (id, zone) => companionSystem.setFarmZone(id, zone),
+    getFarmZone: (id) => companionSystem.getFarmZone(id),
+    farmableZones: () => companionSystem.farmableZones().map((z) => z.id),
+    tickFarm: () => companionSystem.tickFarm()
   },
   reset() {
     saveManager.resetGame();

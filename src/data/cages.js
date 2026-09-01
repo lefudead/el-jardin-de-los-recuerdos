@@ -1,7 +1,10 @@
 /**
  * Datos de jaulas (GDD §17-20).
  * Cada jaula queda vinculada a una criatura concreta tras la captura.
+ * Coste escalado: +25% por cada mapa adicional desbloqueado (Actualización 3.1).
  */
+import { gameState } from "../systems/GameState.js";
+import { MAPS } from "./maps.js";
 export const CAGES = {
   cage_nilo: {
     id: "cage_nilo",
@@ -47,4 +50,16 @@ export const CAGES = {
 
 export function cageForCreature(creatureId) {
   return Object.values(CAGES).find((c) => c.creatureId === creatureId) || null;
+}
+
+/** Nº de mapas desbloqueados (base: 1 = spring_garden). */
+export function unlockedMapCount() {
+  return (gameState.state.unlocks.maps || []).filter((id) => MAPS[id]).length;
+}
+
+/** Coste efectivo de una jaula: +25% por cada mapa adicional desbloqueado. */
+export function cageCost(cage) {
+  if (!cage) return 0;
+  const extra = Math.max(0, unlockedMapCount() - 1);
+  return Math.round(cage.cost * (1 + 0.25 * extra));
 }

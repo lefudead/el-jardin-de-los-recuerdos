@@ -9,6 +9,9 @@
  */
 import { CREATURES } from "../data/creatures.js";
 import { COMPANIONS, companionForCreature } from "../data/companions.js";
+import { ZONES } from "../data/zones.js";
+import { MAPS } from "../data/maps.js";
+import { CONFIG } from "../config.js";
 import { gameState } from "./GameState.js";
 import { economy } from "./EconomyInstance.js";
 import { eventBus } from "./EventBus.js";
@@ -20,6 +23,10 @@ export const MAX_COMPANION_SLOTS = 4;
 export const SLOT_UPGRADE_COST = 60; // ramos por cada slot extra
 
 export class CompanionSystem {
+  constructor() {
+    this._farmTimer = null;
+  }
+
   getCompanions() {
     return gameState.state.creatures.tamed.map((id) => CREATURES[id]).filter(Boolean);
   }
@@ -137,6 +144,76 @@ export class CompanionSystem {
       eventBus.emit(eventBus.constructor.EVENTS.CREATURE_HELPED, { amount: extra });
     }
     return extra;
+  }
+
+  // ================= Farmeo pasivo por zona (Actualización 3.1) =================
+
+  /** Zonas desbloqueadas en las que un apoyo puede farmear (sin mantenimiento). */
+  farmableZones() {
+    const ids = gameState.state.unlocks.maps || [];
+    const out = [];
+    for (const id of ids) {
+      const map = MAPS[id];
+      const zone = ZONES[id];
+      if (!map || map.maintenance || !zone) continue;
+      out.push({ id, name: zone.name, emoji: map.emoji || "✧" });
+    }
+    return out;
+  }
+
+  /** Zona de farmeo elegida para un apoyo (null si no hay ninguna). */
+  getFarmZone(creatureId) {
+    const zones = gameState.state.companions.farmZone;
+    return (zones && zones[creatureId]) || null;
+  }
+
+  /** Elige la zona donde un apoyo farmeará monedas automáticamente. */
+  setFarmZone(creatureId, zoneId) {
+    if (!this.isCompanion(creatureId)) return { ok: false, reason: "not_companion" };
+    const farmable = this.farmableZones().map((z) => z.id);
+    if (zoneId && !farmable.includes(zoneId)) return { ok: false, reason: "locked_zone" };
+    const comp = gameState.state.companions;
+    if (!comp.farmZone) comp.farmZone = {};
+    if (!zoneId) delete comp.farmZone[creatureId];
+    else comp.farmZone[creatureId] = zoneId;
+    saveManager.saveGame();
+    return { ok: true, zone: zoneId };
+  }
+
+  /** Moneda que produce una zona (clave de economy: "petals" o "zona.moneda"). */
+  _farmCurrencyFor(zoneId) {
+    const zone = ZONES[zoneId];
+    if (!zone) return null;
+    return zone.economy === "zone" ? `${zoneId}.${zone.currency}` : "petals";
+  }
+
+  /** Un tick de recolección: cada apoyo activo con zona produce monedas. */
+  tickFarm() {
+    const amount = (CONFIG.companionFarm && CONFIG.companionFarm.amount) || 5;
+    const gained = [];
+    for (const companion of this.getActiveCompanions()) {
+      const zoneId = this.getFarmZone(companion.id) || gameState.state.progression.currentZone;
+      const currency = this._farmCurrencyFor(zoneId);
+      if (!currency) continue;
+      economy.addResource(currency, amount);
+      gained.push({ id: companion.id, zone: zoneId, channel: currency, amount });
+    }
+    return gained;
+  }
+
+  /** Inicia el ciclo de farmeo pasivo (un tick por intervalo configurado). */
+  startFarming() {
+    this.stopFarming();
+    const intervalMs = (CONFIG.companionFarm && CONFIG.companionFarm.intervalMs) || 30000;
+    this._farmTimer = setInterval(() => this.tickFarm(), intervalMs);
+  }
+
+  /** Detiene el ciclo de farmeo pasivo. */
+  stopFarming() {
+    if (this._farmTimer) {
+      clearInterval(this._farmTimer);
+      this._farmTimer = null;
+    }
   }
 }
 

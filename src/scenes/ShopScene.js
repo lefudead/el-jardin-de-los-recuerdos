@@ -18,7 +18,7 @@ import { investigationSystem } from "../systems/InvestigationSystem.js";
 import { captureSystem } from "../systems/CaptureSystem.js";
 import { tamingSystem } from "../systems/TamingSystem.js";
 import { companionSystem } from "../systems/CompanionSystem.js";
-import { CAGES } from "../data/cages.js";
+import { CAGES, cageCost } from "../data/cages.js";
 import { FOODS } from "../data/foods.js";
 import { CREATURES } from "../data/creatures.js";
 import { ZONES } from "../data/zones.js";
@@ -133,10 +133,11 @@ export class ShopScene {
       if (cages.length) {
         html += `<div class="shop-section-title">🪤 Jaulas</div>`;
         for (const cage of cages) {
-          const afford = economy.canAfford(cage.cost);
+          const cost = cageCost(cage);
+          const afford = economy.canAfford(cost);
           const ownedCount = inventorySystem.count("cages", cage.id);
           html += this._card(cage.emoji, cage.name, cage.description,
-            `<button class="btn buy-btn" data-buy-cage="${cage.id}" ${afford ? "" : "disabled"}>${cage.cost} 💐</button>` +
+            `<button class="btn buy-btn" data-buy-cage="${cage.id}" ${afford ? "" : "disabled"}>${cost} 💐</button>` +
             (ownedCount ? `<div class="shop-owned-label">En inventario: ${ownedCount}</div>` : ""));
         }
       }
@@ -190,7 +191,7 @@ export class ShopScene {
     this.el.querySelectorAll("[data-buy-cage]").forEach((btn) => btn.addEventListener("click", () => {
       const cage = CAGES[btn.dataset.buyCage];
       if (!cage) return;
-      if (economy.purchase(cage.cost)) {
+      if (economy.purchase(cageCost(cage))) {
         rewardSystem.give({ type: "cage", id: cage.id, creatureId: cage.creatureId });
         audio.playBuy();
         eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, { text: `${cage.emoji} ${cage.name} añadida` });

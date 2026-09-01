@@ -44,7 +44,7 @@ export class GardenScene {
     this._niloSpawnTimer = null;
     this._niloTutorialPending = false;
     this._niloTutorialProbe = null;
-    // Topo del bosque (Moss)
+    // Camaleón del bosque (Moss)
     this.mossEl = null;
     this.mossState = null;
     this._mossRevealTimer = null;
@@ -392,7 +392,7 @@ export class GardenScene {
   /** Tick del temporizador: intenta que la criatura de la zona aparezca (con probabilidad). */
   _autoSpawnTick() {
     if (!this.autoSpawnNilo) return;
-    // En el bosque aparece el topo (Moss); en el jardín, Nilo.
+    // En el bosque aparece el camaleón (Moss); en el jardín, Nilo.
     if (gs.state.progression.currentZone === "whispering_forest") {
       if (this.mossState) return;
       if (!this._canSpawnMoss()) return;
@@ -497,7 +497,7 @@ export class GardenScene {
 
   // ================= TOPO DEL BOSQUE (MOSS) =================
 
-  /** ¿Puede el topo aparecer ahora? Guards compartidos. */
+  /** ¿Puede el camaleón aparecer ahora? Guards compartidos. */
   _canSpawnMoss() {
     if (this._disposed) return false;
     if (gs.state.progression.currentZone !== "whispering_forest") return false;
@@ -507,31 +507,36 @@ export class GardenScene {
     return true;
   }
 
-  /** Inicia el evento del topo: entierra las plantas y lo muestra. */
+  /** Inicia el evento del camaleón: esconde las plantas y lo muestra. */
   _spawnMoss() {
     if (!this.container) return;
     this.mossState = { taps: 0, endTimer: null };
     this._buryAllPlants(true);
     this._renderMoss();
-    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-      text: "🦔 ¡Un topo está enterrando las plantas! Tócalo para asustarlo."
-    });
+    // El camaleón descubre su criatura en el diario al aparecer.
+    creatureSystem.markDiscovered("moss");
+    // +10% de investigación por APARICIÓN (no por cada toque).
     const cfg = CONFIG.moss;
+    investigationSystem.addResearch("moss", cfg.researchPerSpawn);
+    const pct = investigationSystem.getProgress("moss");
+    eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
+      text: `🦎 ¡Un camaleón se ha camuflado sobre las plantas! +${cfg.researchPerSpawn}% investigación (total ${pct}%). Tócalo para esconderlo.`
+    });
     this.mossState.endTimer = setTimeout(() => this._endMoss(), cfg.eventMs);
     saveManager.saveGame();
   }
 
-  /** Renderiza el sprite del topo que huye entre los huecos. */
+  /** Renderiza el sprite del camaleón que se mueve entre los huecos. */
   _renderMoss() {
     if (!this.container) return;
     if (this.mossEl) return;
     const el = document.createElement("div");
     el.className = "moss";
-    el.textContent = "🦔";
+    el.textContent = "🦎";
 
     const label = document.createElement("div");
     label.className = "moss-label";
-    label.textContent = "¡ENTERRANDO!";
+    label.textContent = "¡CAMUFLADO!";
     el.appendChild(label);
 
     el.addEventListener("pointerdown", (e) => {
@@ -544,12 +549,12 @@ export class GardenScene {
     this.container.appendChild(el);
     this.mossEl = el;
 
-    // Moss huye por los huecos cada 2.5 s.
+    // El camaleón se mueve por los huecos cada 2.5 s.
     clearInterval(this._mossMoveTimer);
     this._mossMoveTimer = setInterval(() => this._mossHop(), 2500);
   }
 
-  /** Salta de un hueco a otro (el topo siempre está en movimiento). */
+  /** Salta de un hueco a otro (el camaleón siempre está en movimiento). */
   _mossHop() {
     const el = this.mossEl;
     if (!el || !el.parentNode) return;
@@ -559,7 +564,7 @@ export class GardenScene {
     el.style.top = randomBetween(22, 68) + "%";
   }
 
-  /** Al tocarlo: investigación, botín, flores visibles 2 s y el topo cambia de hueco. */
+  /** Al tocarlo: botín, plantas visibles 1 s y cambia de hueco. */
   _onMossTap() {
     if (!this.mossState || !this.mossEl) return;
     const el = this.mossEl;
@@ -567,9 +572,6 @@ export class GardenScene {
     setTimeout(() => el.classList.remove("hit"), 120);
 
     const cfg = CONFIG.moss;
-    investigationSystem.addResearch("moss", cfg.researchPerTap);
-    const pct = investigationSystem.getProgress("moss");
-
     const friendship = gs.state.creatures.friendship?.moss || 0;
     const doubled = friendship >= (cfg.dropDoubleFriendship || 200);
     this._mossDrop(doubled);
@@ -578,7 +580,7 @@ export class GardenScene {
     this._mossHop();
 
     eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-      text: `🦔 ¡Lo asustaste! +${cfg.researchPerTap}% investigación (total ${pct}%).`
+      text: "🦎 ¡El camaleón se escondió! Las plantas quedan a la vista 1 s."
     });
     saveManager.saveGame();
   }
@@ -609,7 +611,7 @@ export class GardenScene {
 
     if (grants.length) {
       eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-        text: "🦔 ¡Botín del topo! " + grants.join(", ")
+        text: "🦎 ¡Botín del camaleón! " + grants.join(", ")
       });
     }
   }
@@ -631,17 +633,17 @@ export class GardenScene {
     }, ms);
   }
 
-  /** Termina el evento: desentierra las plantas y retira al topo. */
+  /** Termina el evento: desentierra las plantas y retira al camaleón. */
   _endMoss() {
     this._buryAllPlants(false);
     this._removeMoss();
     eventBus.emit(eventBus.constructor.EVENTS.SHOW_TOAST, {
-      text: "🦔 El topo se fue. Las plantas vuelven a la superficie."
+      text: "🦎 El camaleón se fue. Las plantas vuelven a la superficie."
     });
     saveManager.saveGame();
   }
 
-  /** Retira el sprite y limpia los temporizadores/movimiento del topo. */
+  /** Retira el sprite y limpia los temporizadores/movimiento del camaleón. */
   _removeMoss() {
     if (this.mossEl && this.mossEl.parentNode) {
       this.mossEl.remove();
