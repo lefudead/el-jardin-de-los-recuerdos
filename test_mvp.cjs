@@ -31,18 +31,27 @@ async function getPageWs() {
 }
 function connect(url) { return new Promise((res, rej) => { const ws = new WebSocket(url); ws.onopen = () => res(ws); ws.onerror = (e) => rej(e); }); }
 let mid = 0; const pend = new Map();
+let onPageLoad = null;
 function send(ws, m, p = {}) { return new Promise((res, rej) => { const id = ++mid; pend.set(id, { res, rej }); ws.send(JSON.stringify({ id, method: m, params: p })); }); }
-function attach(ws) { ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.id && pend.has(m.id)) { const p = pend.get(m.id); pend.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); } }; }
+function attach(ws) { ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.method === "Page.loadEventFired" && onPageLoad) { onPageLoad(); onPageLoad = null; } if (m.id && pend.has(m.id)) { const p = pend.get(m.id); pend.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); } }; }
 async function E(ws, x) { const r = await send(ws, "Runtime.evaluate", { expression: x, returnByValue: true, awaitPromise: true }); if (r.exceptionDetails) throw new Error("eval: " + JSON.stringify(r.exceptionDetails)); return r.result?.value; }
 
 async function main() {
   const ws = await connect(await getPageWs()); attach(ws); await send(ws, "Runtime.enable");
   await send(ws, "Log.enable");
+  await send(ws, "Page.enable");
+  // Navegación robusta: espera al evento load de la página NUEVA (evita que el
+  // sondeo evalúe en la instancia vieja aún viva durante la transición).
+  const nav = (url) => new Promise((resolve) => {
+    onPageLoad = () => resolve();
+    send(ws, "Page.navigate", { url });
+  });
 
   // Empezar de cero (partida nueva) de forma determinista
-  await E(ws, `location.href=${JSON.stringify(APP)}`);
+  await nav(APP);
   await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   await E(ws, `window.__garden.reset()`);
+  await new Promise((resolve) => { onPageLoad = () => resolve(); });
   await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   await E(ws, `window.__garden.setNiloAutoSpawn(false)`);
   await sl(300);
@@ -87,7 +96,7 @@ async function main() {
   check("guardado en localStorage", await E(ws, `!!localStorage.getItem('jardin_recuerdos:save')`) === true);
 
   // Recargar: progreso conservado
-  await E(ws, `location.reload()`);
+  await nav(await E(ws, `location.href`));
   await waitFor(ws, `typeof window.__garden === 'object'`, 20000);
   await sl(300);
   const after = await E(ws, `({b: parseInt(document.getElementById('bouquet-counter').textContent), owned: localStorage.getItem('jardin_recuerdos:save').includes('careful_fingers')})`);
