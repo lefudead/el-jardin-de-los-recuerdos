@@ -6,7 +6,7 @@
  */
 import { eventBus } from "../systems/EventBus.js";
 import { gameState } from "../systems/GameState.js";
-import { ZONES } from "../data/zones.js";
+import { ZONES, ZONE_CONVERSIONS } from "../data/zones.js";
 import { timeLabel } from "../utils/time.js";
 
 const Q = (id) => document.getElementById(id);
@@ -32,13 +32,12 @@ export class TopBar {
     if (this.timeEl) this.timeEl.textContent = timeLabel(state);
   }
 
-  /** Muestra la moneda local activa de la zona + los ramos globales. */
+  /** Muestra las 2 monedas de la zona activa + la hora. */
   render() {
     const s = gameState.state;
     const z = ZONES[this.zoneId];
     const zoneResource = s.resources?.zones?.[this.zoneId];
-    // Jardín (economía "garden"): los pétalos viven en resources.petals.
-    // Resto de zonas: moneda propia en resources.zones[zone].<currency>.
+    // Moneda menor (suelta) de la zona: pétalos en el jardín, hojas en el bosque, etc.
     let localVal, currency;
     if (z && z.economy === "zone" && zoneResource) {
       currency = z.currency;
@@ -53,7 +52,24 @@ export class TopBar {
       const icon = this.petalEl.previousElementSibling;
       if (icon && icon.classList.contains("resource-icon")) icon.textContent = this.currencyEmoji;
     }
-    if (this.bouquetEl) this.bouquetEl.textContent = String(s.resources?.bouquets || 0);
+
+    // Moneda mayor (fuerte) de la zona: ramos en el jardín, bultos de hojas en el bosque.
+    // Para zonas con economía propia y conversión definida se lee su moneda mayor;
+    // en el jardín (economía legada) la moneda mayor son los ramos globales.
+    const conv = ZONE_CONVERSIONS[this.zoneId];
+    let majorVal, majorEmoji;
+    if (z && z.economy === "zone" && conv && zoneResource) {
+      majorVal = zoneResource[conv.major] || 0;
+      majorEmoji = conv.major === "bundles" ? "🍂" : "🪙";
+    } else {
+      majorVal = s.resources?.bouquets || 0;
+      majorEmoji = "💐";
+    }
+    if (this.bouquetEl) {
+      this.bouquetEl.textContent = String(majorVal);
+      const icon = this.bouquetEl.previousElementSibling;
+      if (icon && icon.classList.contains("resource-icon")) icon.textContent = majorEmoji;
+    }
   }
 
   /** Callback de RESOURCE_CHANGED (ignora el snap legado y relee el estado). */
