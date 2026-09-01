@@ -105,6 +105,7 @@ class AudioSystem {
 
   /** Música de la INTRO (historia al empezar): melodía suave, una sola nota a la vez. */
   playIntroMusic() {
+    if (gameState.settings.externalMusic?.enabled) return;
     if (!this.ctx) return;
     this.stopMusic();
     const notes = [261.6, 329.6, 392.0, 523.2];
@@ -136,6 +137,7 @@ class AudioSystem {
 
   /** Música para una zona: usa su pista MP3 si existe, si no el arpegio. */
   playZoneMusic(zoneId) {
+    if (gameState.settings.externalMusic?.enabled) return;
     const track = ZONE_TRACKS[zoneId] || null;
     if (track) {
       if (this.currentTrack === track) return;

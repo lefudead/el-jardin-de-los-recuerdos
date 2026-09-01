@@ -324,6 +324,49 @@ body.night.zone-whispering_forest #screen-garden {
 input[type="range"] { width: 55%; accent-color: var(--accent); }
 .checkbox-label input { width: 22px; height: 22px; accent-color: var(--accent); }
 
+/* ===== Música propia (YouTube) ===== */
+.settings-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-soft);
+  margin: 16px 0 8px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-bottom: 4px;
+}
+.settings-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.settings-input input {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  width: 100%;
+}
+.settings-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+.settings-actions .btn { flex: 1; font-size: 13px; padding: 10px 8px; }
+.settings-status { font-size: 12px; color: var(--accent-soft); min-height: 16px; margin: 4px 0 10px; }
+.external-music-host {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+}
+
 .debug-panel {
   margin-top: 16px;
   padding: 14px;
@@ -453,6 +496,16 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
 @keyframes sparkle {
   0% { opacity: 1; transform: translate(-50%, -50%) scale(0.4) rotate(0deg); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6) rotate(90deg); }
+}
+
+/* Partículas de recursos que rebotan por el jardín */
+.floating-particle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 12;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  will-change: left, top, opacity;
 }
 
 /* ---------- NOTIFICATION / TOAST ---------- */

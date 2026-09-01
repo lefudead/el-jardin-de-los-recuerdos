@@ -76,6 +76,19 @@
           <label class="checkbox-label">Vibración
             <input type="checkbox" id="vibration-toggle" checked />
           </label>
+          <div class="settings-section-title">🎵 Mi música (YouTube)</div>
+          <label class="checkbox-label">Usar mi música en lugar de la del juego
+            <input type="checkbox" id="external-music-toggle" />
+          </label>
+          <label class="settings-input">
+            <span>Enlace de YouTube (video o playlist)</span>
+            <input type="text" id="external-music-url" placeholder="https://www.youtube.com/watch?v=… o /playlist?list=…" />
+          </label>
+          <div class="settings-actions">
+            <button id="btn-external-music-play" class="btn btn-ghost">▶ Escuchar</button>
+            <button id="btn-external-music-stop" class="btn btn-ghost">⏹ Volver a la música del juego</button>
+          </div>
+          <div id="external-music-status" class="settings-status"></div>
           <button id="btn-export" class="btn btn-ghost">Exportar partida</button>
           <button id="btn-import" class="btn btn-ghost">Importar partida</button>
           <input type="file" id="export-file" accept="application/json" hidden />
@@ -102,6 +115,9 @@
     <div id="notification" class="notification"></div>
     <div id="toast" class="toast"></div>
   </div>
+
+  <!-- Reproductor de YouTube oculto para la música propia -->
+  <div id="external-music-host" class="external-music-host"></div>
 
   <script type="module" src="src/main.js"></script>
 </body>

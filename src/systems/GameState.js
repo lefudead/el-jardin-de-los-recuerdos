@@ -121,7 +121,9 @@ class GameStateStore {
       musicVersion: 2,
       musicVolume: 0.4,
       sfxVolume: 1,
-      vibration: true
+      vibration: true,
+      // Música propia del jugador (YouTube): enlace + si está activa.
+      externalMusic: { enabled: false, url: "" }
     };
   }
 

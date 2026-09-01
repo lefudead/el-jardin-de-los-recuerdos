@@ -11,9 +11,13 @@ const SAVE_KEY = "save";
 export class SaveSystem {
   constructor() {
     this.saveTimer = null;
+    this.suppress = false;
   }
 
   saveGame() {
+    // Después de resetGame() no se debe volver a guardar (p. ej. el beforeunload
+    // que se dispara justo antes del reload, restaurando lo que se quiso borrar).
+    if (this.suppress) return;
     return storage.saveToStorage(SAVE_KEY, gameState.toSave());
   }
 
@@ -31,6 +35,7 @@ export class SaveSystem {
   }
 
   resetGame() {
+    this.suppress = true;
     storage.removeFromStorage(SAVE_KEY);
     gameState.reset();
     eventBus.emit(eventBus.constructor.EVENTS.GAME_RESET, {});

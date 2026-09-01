@@ -5,6 +5,7 @@ import { gameState } from "../systems/GameState.js";
 import { audio } from "../systems/AudioSystem.js";
 import { saveManager } from "../systems/SaveInstance.js";
 import { debugTools } from "../systems/DebugTools.js";
+import { youtubeMusic } from "../systems/YoutubeMusicSystem.js";
 import { CONFIG } from "../config.js";
 
 const Q = (id) => document.getElementById(id);
@@ -12,6 +13,7 @@ const Q = (id) => document.getElementById(id);
 export class SettingsScene {
   init() {
     this.bindVolumes();
+    this.bindExternalMusic();
     this.bindDebug();
     this.bindTransfer();
   }
@@ -42,6 +44,40 @@ export class SettingsScene {
         saveManager.saveGame();
       });
     }
+  }
+
+  bindExternalMusic() {
+    const toggle = Q("external-music-toggle");
+    const urlInput = Q("external-music-url");
+    const play = Q("btn-external-music-play");
+    const stop = Q("btn-external-music-stop");
+    const s = gameState.settings.externalMusic;
+    if (!toggle || !s) return;
+
+    toggle.checked = !!s.enabled;
+    if (urlInput) urlInput.value = s.url || "";
+    if (Q("external-music-status")) {
+      Q("external-music-status").textContent = youtubeMusic.statusText;
+    }
+
+    toggle.addEventListener("change", async () => {
+      if (toggle.checked) await youtubeMusic.enable();
+      else youtubeMusic.disable();
+    });
+
+    if (play) play.addEventListener("click", async () => {
+      const url = (urlInput?.value || "").trim();
+      if (!url) {
+        youtubeMusic.setStatus("Pega antes un enlace de YouTube (video o playlist).");
+        return;
+      }
+      await youtubeMusic.loadUrl(url);
+    });
+
+    if (stop) stop.addEventListener("click", () => {
+      if (toggle) toggle.checked = false;
+      youtubeMusic.disable();
+    });
   }
 
   bindDebug() {

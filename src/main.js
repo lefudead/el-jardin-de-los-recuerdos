@@ -30,6 +30,7 @@ import { buffSystem } from "./systems/BuffSystem.js";
 import { POTIONS } from "./data/potions.js";
 import { FLOWERS } from "./data/flowers.js";
 import { audio } from "./systems/AudioSystem.js";
+import { youtubeMusic } from "./systems/YoutubeMusicSystem.js";
 import { cageForCreature, cageCost } from "./data/cages.js";
 import { foodForCreature } from "./data/foods.js";
 import { CONFIG } from "./config.js";
@@ -113,6 +114,7 @@ async function start() {  await preload();
   });
 
   settingsScene.init();
+  youtubeMusic.init();
 
   // Menú
   initMenu({
@@ -170,6 +172,22 @@ window.__garden = {
   flowers: () => FLOWERS,
   flowersForZone: (z, t) => flowerSystem.flowersForZone(z, t).map((f) => f.id),
   audioDebug: () => ({ track: audio.currentTrack, melody: !!audio.currentMelody, ctx: audio.ctx ? audio.ctx.state : null, elSrc: audio.musicElement ? audio.musicElement.src : null, elPaused: audio.musicElement ? audio.musicElement.paused : null, sourceConnected: !!audio.musicSource }),
+  youtubeMusic: {
+    status: () => youtubeMusic.statusText,
+    active: () => youtubeMusic.isActive(),
+    settings: () => ({ ...(gameState.settings.externalMusic || {}) }),
+    enable: () => youtubeMusic.enable(),
+    disable: () => youtubeMusic.disable(),
+    loadByUrl: (url) => youtubeMusic.loadUrl(url),
+    parse: (url) => {
+      const extractVideoId = (u) => { const m = String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : null; };
+      const extractPlaylistId = (u) => { const m = String(u).match(/[?&#]list=([A-Za-z0-9_-]+)/); return m && /^(PL|RD|OLAK5uy_|UU|LL|FL|PU)/.test(m[1]) ? m[1] : null; };
+      const playlist = extractPlaylistId(url);
+      if (playlist) return { type: "playlist", id: playlist };
+      const video = extractVideoId(url);
+      return video ? { type: "video", id: video } : null;
+    }
+  },
   grantBouquets: (n) => economy.addBouquets(n),
   addPetals: (n) => economy.addPetals(n),
   // Debug amistad: consultar y forzar (tests)
