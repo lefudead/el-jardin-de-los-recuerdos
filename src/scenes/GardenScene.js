@@ -138,12 +138,7 @@ export class GardenScene {
     const entry = this.flowers.find((f) => f.el === el && f.active);
     if (!entry) return;
 
-    // feedback visual
-    el.classList.add("pressed");
-    setTimeout(() => el.classList.remove("pressed"), 90);
-
-    // partícula de pétalo / recurso flotante
-    this.spawnPetal(entry);
+    // Sin feedback visual extra (partículas/scale): evita lag en móvil.
 
     // El hongo rarísimo se recoge y se va (no respawnea, persiste hasta recogerlo).
     if (entry.flower?.id === "mushroom" && entry.flower?.special?.type === "rare_dropped") {
