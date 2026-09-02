@@ -29,6 +29,30 @@ export class SettingsScene {
     this.bindExternalMusic();
     this.bindDebug();
     this.bindTransfer();
+    this.bindFullscreen();
+  }
+
+  bindFullscreen() {
+    const fs = Q("btn-fullscreen");
+    if (!fs) return;
+    const label = () => {
+      fs.textContent = document.fullscreenElement ? "⛶ Salir de pantalla completa" : "⛶ Pantalla completa";
+    };
+    document.addEventListener("fullscreenchange", label);
+    document.addEventListener("webkitfullscreenchange", label);
+    fs.addEventListener("click", () => {
+      if (document.fullscreenElement) {
+        (document.exitFullscreen && document.exitFullscreen().catch(() => {}));
+      } else {
+        const root = document.documentElement;
+        const fn = root.requestFullscreen || root.webkitRequestFullscreen;
+        if (typeof fn === "function") {
+          fn.call(root).then(label).catch(() => alert("No se pudo activar la pantalla completa."));
+        } else {
+          alert("Tu navegador no permite pantalla completa.");
+        }
+      }
+    });
   }
 
   bindVolumes() {

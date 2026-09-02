@@ -40,7 +40,7 @@ body {
   width: 100vw;
   max-width: 480px;
   height: 100vh;
-  max-height: 900px;
+  height: 100dvh;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -446,18 +446,14 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
 }
 
 /* ---------- FLOWERS ---------- */
+/* Sin efectos de transform/transición en el tap: las flores ya se mueven por
+   rAF cada frame y una transición/scale extra fuerzas capas y lag en móvil. */
 .flower {
   position: absolute;
   transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px)));
   font-size: 40px;
   cursor: pointer;
-  will-change: transform;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
-
-.flower.pressed {
-  transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(1.12);
-  transition: transform 0.08s ease;
 }
 
 .flower.faded { opacity: 0.25; filter: grayscale(0.8); pointer-events: none; }
@@ -516,14 +512,15 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6) rotate(90deg); }
 }
 
-/* Partículas de recursos que rebotan por el jardín */
+/* Partículas de recursos que rebotan por el jardín. El movimiento usa
+   transform (composable, sin tocar layout) para evitar lag en móvil. */
 .floating-particle {
   position: absolute;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 12;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
-  will-change: left, top, opacity;
+  will-change: transform, opacity;
 }
 
 /* ---------- NOTIFICATION / TOAST ---------- */
@@ -845,6 +842,14 @@ input[type="range"] { width: 55%; accent-color: var(--accent); }
 @keyframes breatheGlow {
   0%   { transform: scale(1); }
   100% { transform: scale(1.12); text-shadow: 0 0 40px rgba(255, 240, 180, 0.9); }
+}
+
+/* ---------- RESPONSIVE MÓVIL ---------- */
+/* En pantallas pequeñas el último botón no debe quedar tapado por la barra
+   de navegación inferior: los paneles hacen scroll y dejan espacio abajo.
+   (Reglas al final: ganan al `padding: 16px` de cada pantalla.) */
+#screen-map, #screen-journal, #screen-shop, #screen-settings {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 

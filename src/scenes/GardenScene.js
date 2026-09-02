@@ -355,8 +355,6 @@ export class GardenScene {
       const p = document.createElement("div");
       p.className = "floating-particle";
       p.textContent = emoji;
-      p.style.left = x + "px";
-      p.style.top = y + "px";
       p.style.fontSize = randomBetween(12, 22) + "px";
       this.container.appendChild(p);
 
@@ -409,8 +407,8 @@ export class GardenScene {
       const fadeStart = p.maxLife * 0.65;
       const opacity = p.life > fadeStart ? 1 - (p.life - fadeStart) / (p.maxLife - fadeStart) : 1;
 
-      p.el.style.left = p.x + "px";
-      p.el.style.top = p.y + "px";
+      // Yuxtaposición vía transform: compositor, sin sobrescribir layout.
+      p.el.style.transform = `translate(-50%, -50%) translate(${p.x}px, ${p.y}px)`;
       p.el.style.opacity = opacity;
 
       if (p.life >= p.maxLife) {
